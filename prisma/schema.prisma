@@ -131,10 +131,9 @@ model ChatMessage {
   @@index([threadId])
 }
 
-/// A conversation. `userId` is the left-hand side of the chat.
+/// A conversation.
 model ChatThread {
-  id     Int @id @default(autoincrement())
-  userId Int
+  id Int @id @default(autoincrement())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -144,23 +143,6 @@ model ChatThread {
   messages    ChatMessage[]
   listingLink ListingChatThread?
   inboxItem   InboxItem?
-
-  @@index([userId])
-}
-
-/// A user's inbox.
-model InboxList {
-  id     Int @id @default(autoincrement())
-  userId Int
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy Int?
-  updatedBy Int?
-
-  items InboxItem[]
-
-  @@index([userId])
 }
 
 /// Attaches a chat thread to the listing it is about.
@@ -168,6 +150,7 @@ model ListingChatThread {
   id           Int @id @default(autoincrement())
   listingId    Int
   chatThreadId Int @unique
+  hasUnread    Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -180,21 +163,21 @@ model ListingChatThread {
   @@index([listingId])
 }
 
-/// A chat thread shown in an inbox.
+/// A chat thread shown in a user's inbox.
 model InboxItem {
   id           Int @id @default(autoincrement())
-  listId       Int
+  userId       Int
   chatThreadId Int @unique
+  hasUnread    Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   createdBy Int?
   updatedBy Int?
 
-  list       InboxList  @relation(fields: [listId], references: [id], onDelete: Cascade)
   chatThread ChatThread @relation(fields: [chatThreadId], references: [id], onDelete: Cascade)
 
-  @@index([listId])
+  @@index([userId])
 }
 
 /// A facet (filterable attribute) that belongs to a category.

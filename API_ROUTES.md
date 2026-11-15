@@ -56,11 +56,7 @@ AI agents and humans integrating with the API.
 | `GET` | `/chat-threads/:id` | – | `200` chat thread | `404` if missing |
 | `PATCH` | `/chat-threads/:id` | `UpdateChatThreadDto` | `200` chat thread | |
 | `DELETE` | `/chat-threads/:id` | – | `204` empty | `404` if missing; cascades messages/links |
-| `POST` | `/inbox-lists` | `CreateInboxListDto` | `201` inbox list | |
-| `GET` | `/inbox-lists` | – | `200` inbox list[] | ordered by `id` |
-| `GET` | `/inbox-lists/:id` | – | `200` inbox list | `404` if missing |
-| `PATCH` | `/inbox-lists/:id` | `UpdateInboxListDto` | `200` inbox list | |
-| `DELETE` | `/inbox-lists/:id` | – | `204` empty | `404` if missing; cascades inbox items |
+| `GET` | `/chat-events/stream` | – | `200` `text/event-stream` | live chat: new/updated messages as SSE |
 | `POST` | `/listing-chat-threads` | `CreateListingChatThreadDto` | `201` link | `chatThreadId` is unique |
 | `GET` | `/listing-chat-threads` | – | `200` link[] | ordered by `id` |
 | `GET` | `/listing-chat-threads/:id` | – | `200` link | `404` if missing |
@@ -214,22 +210,27 @@ the acting user on audit. Deleting a thread cascades to its messages.
 ### `/chat-threads` — ChatThread
 Source: `src/chat-threads/chat-threads.controller.ts`, `src/chat-threads/chat-threads.service.ts`
 
-| Field | Type | Required | Constraints |
-| --- | --- | --- | --- |
-| `userId` | int | yes | plain integer (not a FK) |
+A chat thread has no caller-supplied fields; the participants come from its
+listing link (`listing-chat-threads`) and inbox item (`inbox-items`).
 
-Response: `id`, `userId`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`.
+Response: `id`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`.
 Deleting a thread cascades to its messages, listing links, and inbox items.
 
-### `/inbox-lists` — InboxList
-Source: `src/inbox-lists/inbox-lists.controller.ts`, `src/inbox-lists/inbox-lists.service.ts`
+### `/chat-events/stream` — live chat stream
+Source: `src/chat-events/chat-events.controller.ts`,
+`src/chat-events/chat-events.service.ts`
 
-| Field | Type | Required | Constraints |
-| --- | --- | --- | --- |
-| `userId` | int | yes | plain integer (not a FK) |
+Server-Sent Events (`text/event-stream`), consumed by the frontend's
+`EventSource` at `GET /api/chat-events/stream`. Every event's `data` is JSON:
 
-Response: `id`, `userId`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`.
-Deleting a list cascades to its items.
+| Event | Payload |
+| --- | --- |
+| `message.created` | `{ type, message: ChatMessage }` after `POST /chat-messages` |
+| `message.updated` | `{ type, message: ChatMessage }` after `PATCH /chat-messages/:id` |
+| `ping` | `{ type, at }` heartbeat every 15 seconds |
+
+A client is never sent past events on connect; reconnecting clients should
+re-read `/chat-messages` to catch up.
 
 ### `/listing-chat-threads` — ListingChatThread
 Source: `src/listing-chat-threads/listing-chat-threads.controller.ts`, `src/listing-chat-threads/listing-chat-threads.service.ts`
@@ -239,19 +240,23 @@ Source: `src/listing-chat-threads/listing-chat-threads.controller.ts`, `src/list
 | `listingId` | int | yes | FK → `listings.id` |
 | `chatThreadId` | int | yes | FK → `chat-threads.id`, **unique** (one link per thread) |
 
-Response: `id`, `listingId`, `chatThreadId`, `createdAt`, `updatedAt`,
-`createdBy`, `updatedBy`.
+Response: `id`, `listingId`, `chatThreadId`, `hasUnread`, `createdAt`, `updatedAt`,
+`createdBy`, `updatedBy`. `hasUnread` drives the red unread badge on the
+drawer chat row under the listing. `PATCH /listing-chat-threads/:id` accepts
+`hasUnread` (boolean) to mark the conversation read.
 
 ### `/inbox-items` — InboxItem
 Source: `src/inbox-items/inbox-items.controller.ts`, `src/inbox-items/inbox-items.service.ts`
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `listId` | int | yes | FK → `inbox-lists.id` |
+| `userId` | int | yes | plain integer (not a FK) |
 | `chatThreadId` | int | yes | FK → `chat-threads.id`, **unique** (one inbox item per thread) |
 
-Response: `id`, `listId`, `chatThreadId`, `createdAt`, `updatedAt`,
-`createdBy`, `updatedBy`.
+Response: `id`, `userId`, `chatThreadId`, `hasUnread`, `createdAt`, `updatedAt`,
+`createdBy`, `updatedBy`. `hasUnread` drives the red unread badge on the
+Messages dialog inbox row. `PATCH /inbox-items/:id` accepts `hasUnread`
+(boolean) to mark the conversation read.
 
 ### `/facet-schemas` — FacetSchema
 Source: `src/facet-schemas/facet-schemas.controller.ts`, `src/facet-schemas/facet-schemas.service.ts`
@@ -299,7 +304,6 @@ Response: `id`, `facetValueOptionId`, `listingId`, `createdAt`, `updatedAt`,
 | ChatMessage | `threadId` | ChatThread.id | Cascade |
 | ListingChatThread | `listingId` | Listing.id | Cascade |
 | ListingChatThread | `chatThreadId` | ChatThread.id | Cascade (unique) |
-| InboxItem | `listId` | InboxList.id | Cascade |
 | InboxItem | `chatThreadId` | ChatThread.id | Cascade (unique) |
 | FacetSchema | `descriptionId` | Description.id | Restrict → `400` |
 | FacetSchema | `categoryId` | Category.id | Restrict → `400` |
@@ -309,7 +313,7 @@ Response: `id`, `facetValueOptionId`, `listingId`, `createdAt`, `updatedAt`,
 | FacetValueSelection | `listingId` | Listing.id | Cascade |
 
 Plain integer columns with **no** foreign key: `Listing.userId`,
-`ChatThread.userId`, `InboxList.userId`, `createdBy`, `updatedBy`.
+`InboxItem.userId`, `createdBy`, `updatedBy`.
 
 ### Unique constraints
 - `users.email`
@@ -324,12 +328,11 @@ Plain integer columns with **no** foreign key: `Listing.userId`,
 4. `POST /facet-schemas` (description + category)
 5. `POST /facet-value-options` (description + facet schema)
 6. `POST /listings` (category; `userId` is an integer)
-7. `POST /chat-threads` (integer `userId`)
+7. `POST /chat-threads` (no body)
 8. `POST /chat-messages` (chat thread)
-9. `POST /inbox-lists` (integer `userId`)
-10. `POST /inbox-items` (inbox list + chat thread)
-11. `POST /listing-chat-threads` (listing + chat thread)
-12. `POST /facet-value-selections` (facet value option + listing)
+9. `POST /inbox-items` (user id + chat thread)
+10. `POST /listing-chat-threads` (listing + chat thread)
+11. `POST /facet-value-selections` (facet value option + listing)
 
 Delete in reverse order, or rely on cascade where it exists. Required relations
 (no `onDelete`) block deletion with `400` while a child row exists.
@@ -392,7 +395,7 @@ curl -X DELETE $BASE/categories/1 -i
 | descriptions | `src/descriptions/descriptions.controller.ts` | `src/descriptions/descriptions.service.ts` | `Description` |
 | chat-messages | `src/chat-messages/chat-messages.controller.ts` | `src/chat-messages/chat-messages.service.ts` | `ChatMessage` |
 | chat-threads | `src/chat-threads/chat-threads.controller.ts` | `src/chat-threads/chat-threads.service.ts` | `ChatThread` |
-| inbox-lists | `src/inbox-lists/inbox-lists.controller.ts` | `src/inbox-lists/inbox-lists.service.ts` | `InboxList` |
+| chat-events | `src/chat-events/chat-events.controller.ts` | `src/chat-events/chat-events.service.ts` | – |
 | listing-chat-threads | `src/listing-chat-threads/listing-chat-threads.controller.ts` | `src/listing-chat-threads/listing-chat-threads.service.ts` | `ListingChatThread` |
 | inbox-items | `src/inbox-items/inbox-items.controller.ts` | `src/inbox-items/inbox-items.service.ts` | `InboxItem` |
 | facet-schemas | `src/facet-schemas/facet-schemas.controller.ts` | `src/facet-schemas/facet-schemas.service.ts` | `FacetSchema` |

@@ -10,6 +10,7 @@ const listingChatThreadSelect = {
   id: true,
   listingId: true,
   chatThreadId: true,
+  hasUnread: true,
   ...auditSelect,
 } satisfies Prisma.ListingChatThreadSelect;
 

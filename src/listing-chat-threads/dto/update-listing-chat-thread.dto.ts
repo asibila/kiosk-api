@@ -3,6 +3,9 @@ import { createListingChatThreadSchema } from './create-listing-chat-thread.dto.
 
 export const updateListingChatThreadSchema = createListingChatThreadSchema
   .partial()
+  .extend({
+    hasUnread: z.boolean().optional(),
+  })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field must be provided',
   });

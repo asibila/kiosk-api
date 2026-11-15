@@ -135,13 +135,16 @@ CRUD controller per entity. Every resource has the same endpoints:
 | `/categories` | `descriptionId`, `parentCategoryId` (nullable) |
 | `/descriptions` | `language` (`en` or `hr`), `text` (max 225) |
 | `/chat-messages` | `text` (max 225), `threadId`, `userId` (id of the user which created the message) | `201` created row |
-| `/chat-threads` | `userId` |
-| `/inbox-lists` | `userId` |
+| `/chat-threads` | - (no fields) |
 | `/listing-chat-threads` | `listingId`, `chatThreadId` |
-| `/inbox-items` | `listId`, `chatThreadId` |
+| `/inbox-items` | `userId`, `chatThreadId` |
 | `/facet-schemas` | `descriptionId`, `name` (max 225), `categoryId` |
 | `/facet-value-options` | `descriptionId`, `schemaId` |
 | `/facet-value-selections` | `facetValueOptionId`, `listingId` |
+
+Live chat uses `GET /chat-events/stream` (Server-Sent Events). It emits
+`message.created` / `message.updated` events with the saved `ChatMessage` row,
+plus a `ping` heartbeat; it is not part of the CRUD table above.
 
 A duplicate unique value returns `409`, a reference to a row that does not
 exist returns `400`, and an unknown `:id` returns `404`.

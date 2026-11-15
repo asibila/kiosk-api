@@ -8,8 +8,9 @@ import type { UpdateInboxItemDto } from './dto/update-inbox-item.dto.js';
 
 const inboxItemSelect = {
   id: true,
-  listId: true,
+  userId: true,
   chatThreadId: true,
+  hasUnread: true,
   ...auditSelect,
 } satisfies Prisma.InboxItemSelect;
 

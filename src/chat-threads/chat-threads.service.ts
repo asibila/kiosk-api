@@ -8,7 +8,6 @@ import type { UpdateChatThreadDto } from './dto/update-chat-thread.dto.js';
 
 const chatThreadSelect = {
   id: true,
-  userId: true,
   ...auditSelect,
 } satisfies Prisma.ChatThreadSelect;
 
