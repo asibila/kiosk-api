@@ -67,6 +67,12 @@ AI agents and humans integrating with the API.
 | `GET` | `/inbox-items/:id` | – | `200` inbox item | `404` if missing |
 | `PATCH` | `/inbox-items/:id` | `UpdateInboxItemDto` | `200` inbox item | |
 | `DELETE` | `/inbox-items/:id` | – | `204` empty | `404` if missing |
+| `POST` | `/listing-images` | multipart `file` + `listingId` | `201` image metadata | binary saved to `uploads/listing-images/` |
+| `GET` | `/listing-images` | optional `?listingId=` | `200` image metadata[] | ordered by `id` |
+| `GET` | `/listing-images/:id` | – | `200` image metadata | `404` if missing |
+| `GET` | `/listing-images/:id/file` | – | `200` image bytes | stored `Content-Type`, long-lived cache |
+| `PATCH` | `/listing-images/:id` | `{ primaryImage }` | `200` image metadata | marks primary; clears siblings |
+| `DELETE` | `/listing-images/:id` | – | `204` empty | deletes the row and the file |
 | `POST` | `/facet-schemas` | `CreateFacetSchemaDto` | `201` facet schema | `name` is unique |
 | `GET` | `/facet-schemas` | – | `200` facet schema[] | ordered by `id` |
 | `GET` | `/facet-schemas/:id` | – | `200` facet schema | `404` if missing |
@@ -258,6 +264,39 @@ Response: `id`, `userId`, `chatThreadId`, `hasUnread`, `createdAt`, `updatedAt`,
 Messages dialog inbox row. `PATCH /inbox-items/:id` accepts `hasUnread`
 (boolean) to mark the conversation read.
 
+### `/listing-images` — ListingImage
+Source: `src/listing-images/listing-images.controller.ts`,
+`src/listing-images/listing-images.service.ts`
+
+A listing can have zero or more images. The binary is stored on disk in
+`uploads/listing-images/` (relative to the backend working directory); the
+database only keeps metadata. The original upload file name is **not** stored —
+the file is saved under a generated UUID name.
+
+| Field | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `file` | file | yes | multipart field; JPEG, PNG, WebP, GIF or AVIF; max 10 MB |
+| `listingId` | int | yes | FK → `listings.id`; sent as a multipart text field |
+
+Response: `id`, `listingId`, `mimeType`, `size`, `primaryImage`, `url`,
+`createdAt`, `updatedAt`, `createdBy`, `updatedBy`. `url` is API-relative
+(`/listing-images/<id>/file`); with the frontend's Vite proxy it becomes
+`/api/listing-images/<id>/file`.
+
+The first image uploaded for a listing becomes its primary image
+(`primaryImage: true`) automatically. `PATCH /listing-images/:id` with
+`{ "primaryImage": true }` promotes that image and clears the flag on its
+siblings, so a listing has at most one primary image. Lists are returned with
+the primary image first. Deleting a listing cascades its image rows (the files
+are removed by the delete endpoint, not the cascade).
+
+```bash
+curl -X POST http://localhost:3000/listing-images \
+  -H 'x-actor-id: 1' \
+  -F 'listingId=25' \
+  -F 'file=@photo.jpg;type=image/jpeg'
+```
+
 ### `/facet-schemas` — FacetSchema
 Source: `src/facet-schemas/facet-schemas.controller.ts`, `src/facet-schemas/facet-schemas.service.ts`
 
@@ -305,6 +344,7 @@ Response: `id`, `facetValueOptionId`, `listingId`, `createdAt`, `updatedAt`,
 | ListingChatThread | `listingId` | Listing.id | Cascade |
 | ListingChatThread | `chatThreadId` | ChatThread.id | Cascade (unique) |
 | InboxItem | `chatThreadId` | ChatThread.id | Cascade (unique) |
+| ListingImage | `listingId` | Listing.id | Cascade |
 | FacetSchema | `descriptionId` | Description.id | Restrict → `400` |
 | FacetSchema | `categoryId` | Category.id | Restrict → `400` |
 | FacetValueOption | `descriptionId` | Description.id | Restrict → `400` |
@@ -320,6 +360,7 @@ Plain integer columns with **no** foreign key: `Listing.userId`,
 - `facet-schemas.name`
 - `listing-chat-threads.chatThreadId`
 - `inbox-items.chatThreadId`
+- `listing-images.fileName`
 
 ### Safe creation order
 1. `POST /users`
@@ -397,6 +438,7 @@ curl -X DELETE $BASE/categories/1 -i
 | chat-threads | `src/chat-threads/chat-threads.controller.ts` | `src/chat-threads/chat-threads.service.ts` | `ChatThread` |
 | chat-events | `src/chat-events/chat-events.controller.ts` | `src/chat-events/chat-events.service.ts` | – |
 | listing-chat-threads | `src/listing-chat-threads/listing-chat-threads.controller.ts` | `src/listing-chat-threads/listing-chat-threads.service.ts` | `ListingChatThread` |
+| listing-images | `src/listing-images/listing-images.controller.ts` | `src/listing-images/listing-images.service.ts` | `ListingImage` |
 | inbox-items | `src/inbox-items/inbox-items.controller.ts` | `src/inbox-items/inbox-items.service.ts` | `InboxItem` |
 | facet-schemas | `src/facet-schemas/facet-schemas.controller.ts` | `src/facet-schemas/facet-schemas.service.ts` | `FacetSchema` |
 | facet-value-options | `src/facet-value-options/facet-value-options.controller.ts` | `src/facet-value-options/facet-value-options.service.ts` | `FacetValueOption` |

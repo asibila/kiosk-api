@@ -146,6 +146,17 @@ Live chat uses `GET /chat-events/stream` (Server-Sent Events). It emits
 `message.created` / `message.updated` events with the saved `ChatMessage` row,
 plus a `ping` heartbeat; it is not part of the CRUD table above.
 
+Listing images are not plain CRUD rows: `POST /listing-images` accepts a
+multipart upload (`file` + `listingId`), stores the binary under
+`uploads/listing-images/` with a generated file name, and keeps only metadata
+(`listingId`, `mimeType`, `size`, `primaryImage`) in the `ListingImage` table.
+The first image is primary automatically; `PATCH /listing-images/:id` with
+`{ "primaryImage": true }` promotes another image (clearing the siblings).
+Fetch bytes with `GET /listing-images/:id/file`;
+`GET /listing-images?listingId=<id>` lists a listing's images (primary first)
+and `DELETE /listing-images/:id` removes the row and the file. JPEG, PNG, WebP,
+GIF and AVIF are accepted up to 10 MB.
+
 A duplicate unique value returns `409`, a reference to a row that does not
 exist returns `400`, and an unknown `:id` returns `404`.
 

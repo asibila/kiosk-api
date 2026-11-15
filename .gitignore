@@ -25,3 +25,6 @@ npm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+
+# Uploaded files (listing images live here at runtime)
+uploads/

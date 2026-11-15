@@ -72,6 +72,7 @@ model Listing {
   category             Category              @relation(fields: [categoryId], references: [id])
   facetValueSelections FacetValueSelection[]
   chatThreads          ListingChatThread[]
+  images               ListingImage[]
 
   @@index([categoryId])
   @@index([userId])
@@ -178,6 +179,27 @@ model InboxItem {
   chatThread ChatThread @relation(fields: [chatThreadId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// An image attached to a listing. The binary lives on disk in
+/// `uploads/listing-images/`; `fileName` is the generated storage name (the
+/// original upload name is intentionally not kept).
+model ListingImage {
+  id           Int     @id @default(autoincrement())
+  listingId    Int
+  fileName     String  @unique
+  mimeType     String
+  size         Int
+  primaryImage Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
 }
 
 /// A facet (filterable attribute) that belongs to a category.
