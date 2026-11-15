@@ -211,12 +211,14 @@ model ListingImage {
   @@index([listingId])
 }
 
-/// A facet (filterable attribute) that belongs to a category.
+/// A facet (filterable attribute) that belongs to a category. `isGeneric`
+/// facets apply to products in every category (for example condition).
 model FacetSchema {
-  id            Int    @id @default(autoincrement())
+  id            Int     @id @default(autoincrement())
   descriptionId Int
-  name          String @unique
+  name          String  @unique
   categoryId    Int
+  isGeneric     Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

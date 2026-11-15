@@ -48,6 +48,7 @@ AI agents and humans integrating with the API.
 | `DELETE` | `/descriptions/:id` | – | `204` empty | `404` if missing; `400` if still referenced |
 | `GET` | `/languages` | – | `200` language[] | seeded `en` / `hr`, ordered by code |
 | `GET` | `/languages/:code` | – | `200` language | `404` if missing |
+| `GET` | `/suggest` | query params | `200` `{ suggestions }` | facet autocomplete for the chip input |
 | `POST` | `/chat-messages` | `CreateChatMessageDto` | `201` chat message | |
 | `GET` | `/chat-messages` | – | `200` chat message[] | ordered by `id` |
 | `GET` | `/chat-messages/:id` | – | `200` chat message | `404` if missing |
@@ -236,6 +237,53 @@ routes are not exposed.
 
 Response: `code`, `name`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`.
 
+### `/suggest` — facet autocomplete
+Source: `src/suggestions/suggestions.controller.ts`,
+`src/suggestions/suggestions.service.ts`
+
+Powers the structured chip search input. Suggestions are facet values, not ad
+free text, and counts are computed from `FacetValueSelection` rows.
+
+| Query | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `q` | string | no | Matched against translated value labels, facet labels and facet names |
+| `lang` | string | no | `en` (default) or `hr`; unknown codes fall back to English text |
+| `category` | int | no | Selected category id; includes generic facets and facets inherited from ancestor categories. Omitted = all categories |
+| `orientation` | `buy` \| `sell` | no | Optional frontend extension mirroring the Buy/Sell control |
+| `chips` | JSON string | no | `[{ "kind": "value", "facet": "condition", "valueId": "1" }]` |
+
+Response:
+
+```json
+{
+  "suggestions": [
+    {
+      "facet": "condition",
+      "facetLabel": "Condition",
+      "valueId": "1",
+      "label": "New",
+      "count": 1
+    }
+  ]
+}
+```
+
+Only values with `count > 0` are returned, up to 60 rows, sorted by facet label,
+then count descending, then value label. Chips are AND constraints. A facet that
+already has a value chip is omitted from the response (the data model allows one
+value per facet per listing), so the client cannot build an impossible query.
+When `category` is set, a facet is included if it is marked `isGeneric` or is
+defined on the selected category or one of its ancestors. This is how a parent
+category's facets (for example Electronics/brand) apply to its subcategories.
+`kind: "range"` chips are accepted for forward compatibility but ignored until
+numeric facets exist. The frontend calls this as `/api/suggest` through the Vite
+proxy.
+
+```bash
+curl 'http://localhost:3000/suggest?q=new&lang=en&category=2'
+curl 'http://localhost:3000/suggest?q=&lang=hr&category=6&chips=%5B%7B%22kind%22%3A%22value%22%2C%22facet%22%3A%22frame_size%22%2C%22valueId%22%3A%228%22%7D%5D'
+```
+
 ### `/chat-messages` — ChatMessage
 Source: `src/chat-messages/chat-messages.controller.ts`, `src/chat-messages/chat-messages.service.ts`
 
@@ -339,11 +387,14 @@ Source: `src/facet-schemas/facet-schemas.controller.ts`, `src/facet-schemas/face
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
 | `descriptionId` | int | yes | references `descriptions.id`; existence checked by the API |
-| `name` | string | yes | trimmed, 1–225 chars, **unique** |
+| `name` | string | yes | trimmed, 1-225 chars, **unique** |
 | `categoryId` | int | yes | FK → `categories.id` |
+| `isGeneric` | boolean | no | default `false`; generic facets apply to products in every category |
 
-Response: `id`, `descriptionId`, `name`, `categoryId`, `createdAt`,
+Response: `id`, `descriptionId`, `name`, `categoryId`, `isGeneric`, `createdAt`,
 `updatedAt`, `createdBy`, `updatedBy`. Deleting a schema cascades to its options.
+The catalog migration marks `condition` as generic, moves `brand` to
+Electronics and adds the Mobile phones `screen_size` facet.
 
 ### `/facet-value-options` — FacetValueOption
 Source: `src/facet-value-options/facet-value-options.controller.ts`, `src/facet-value-options/facet-value-options.service.ts`
@@ -471,6 +522,7 @@ curl -X DELETE $BASE/categories/1 -i
 | categories | `src/categories/categories.controller.ts` | `src/categories/categories.service.ts` | `Category` |
 | descriptions | `src/descriptions/descriptions.controller.ts` | `src/descriptions/descriptions.service.ts` | `Description` |
 | languages | `src/languages/languages.controller.ts` | `src/languages/languages.service.ts` | `Language` |
+| suggest | `src/suggestions/suggestions.controller.ts` | `src/suggestions/suggestions.service.ts` | `FacetSchema`, `FacetValueOption`, `FacetValueSelection` |
 | chat-messages | `src/chat-messages/chat-messages.controller.ts` | `src/chat-messages/chat-messages.service.ts` | `ChatMessage` |
 | chat-threads | `src/chat-threads/chat-threads.controller.ts` | `src/chat-threads/chat-threads.service.ts` | `ChatThread` |
 | chat-events | `src/chat-events/chat-events.controller.ts` | `src/chat-events/chat-events.service.ts` | – |

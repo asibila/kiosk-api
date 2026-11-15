@@ -139,7 +139,7 @@ CRUD controller per entity. Every resource has the same endpoints:
 | `/chat-threads` | - (no fields) |
 | `/listing-chat-threads` | `listingId`, `chatThreadId` |
 | `/inbox-items` | `userId`, `chatThreadId` |
-| `/facet-schemas` | `descriptionId`, `name` (max 225), `categoryId` |
+| `/facet-schemas` | `descriptionId`, `name` (max 225), `categoryId`, `isGeneric` (default false) |
 | `/facet-value-options` | `descriptionId`, `schemaId` |
 | `/facet-value-selections` | `facetValueOptionId`, `listingId` |
 
@@ -157,6 +157,29 @@ language(s). `Category.descriptionId`, `FacetSchema.descriptionId` and
 `FacetValueOption.descriptionId` reference the description `id` (the API checks
 that it exists, but SQLite cannot declare a foreign key to a non-unique column,
 so there is no DB-level constraint).
+
+The catalog migration associated with the language work also marks `condition`
+as a generic facet (applies to every product), moves `brand` to its parent
+Electronics category and adds a Mobile phones `screen_size` facet.
+
+### Facet suggestions
+
+`GET /suggest` powers the structured search input. It returns facet values (not
+ad free text) with counts derived from `FacetValueSelection` rows:
+
+```bash
+curl 'http://localhost:3000/suggest?q=new&lang=en&category=2'
+# {"suggestions":[{"facet":"condition","facetLabel":"Condition","valueId":"1","label":"New","count":1}]}
+```
+
+Query parameters: `q`, `lang` (`en`/`hr`), `category` (selected category id),
+optional `orientation` (`buy`/`sell`) and optional `chips` (JSON array of
+committed chips). A facet is included when it is generic (`isGeneric`) or
+defined on the selected category or one of its ancestors, so parent-category
+facets apply to subcategories. Chips are AND constraints; a facet that already
+has a value chip is omitted. Only non-zero counts are returned, sorted by facet
+then count. Range chips are accepted but ignored until numeric facets exist. The
+Vite frontend calls this as `/api/suggest`.
 
 Listing images are not plain CRUD rows: `POST /listing-images` accepts a
 multipart upload (`file` + `listingId`), stores the binary under
