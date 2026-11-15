@@ -30,10 +30,17 @@ enum Orientation {
   sell
 }
 
-/// Languages a description can be translated to.
-enum Language {
-  en
-  hr
+/// A language the interface and description texts are available in.
+model Language {
+  code String @id
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  descriptions Description[]
 }
 
 // Example:
@@ -89,7 +96,6 @@ model Category {
   createdBy Int?
   updatedBy Int?
 
-  description     Description   @relation(fields: [descriptionId], references: [id])
   parentCategory  Category?     @relation("CategoryTree", fields: [parentCategoryId], references: [id], onDelete: SetNull)
   childCategories Category[]    @relation("CategoryTree")
   listings        Listing[]
@@ -99,10 +105,12 @@ model Category {
   @@index([parentCategoryId])
 }
 
-/// A translated piece of text, shared by categories and facets.
+/// A translated piece of text, shared by categories and facets. Every `id`
+/// groups one translation per language (the primary key is `[id, language]`),
+/// so a description always has a text in every configured language.
 model Description {
-  id       Int      @id @default(autoincrement())
-  language Language
+  id       Int
+  language String
   text     String
 
   createdAt DateTime @default(now())
@@ -110,9 +118,10 @@ model Description {
   createdBy Int?
   updatedBy Int?
 
-  categories        Category[]
-  facetSchemas      FacetSchema[]
-  facetValueOptions FacetValueOption[]
+  languageRef Language @relation(fields: [language], references: [code])
+
+  @@id([id, language])
+  @@index([language])
 }
 
 /// A message inside a chat thread. `userId` is the id of the user which created it.
@@ -214,7 +223,6 @@ model FacetSchema {
   createdBy Int?
   updatedBy Int?
 
-  description Description        @relation(fields: [descriptionId], references: [id])
   category    Category           @relation(fields: [categoryId], references: [id])
   options     FacetValueOption[]
 
@@ -233,7 +241,6 @@ model FacetValueOption {
   createdBy Int?
   updatedBy Int?
 
-  description Description           @relation(fields: [descriptionId], references: [id])
   schema      FacetSchema           @relation(fields: [schemaId], references: [id], onDelete: Cascade)
   selections  FacetValueSelection[]
 

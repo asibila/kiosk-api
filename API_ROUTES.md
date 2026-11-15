@@ -41,11 +41,13 @@ AI agents and humans integrating with the API.
 | `GET` | `/categories/:id` | – | `200` category | `404` if missing |
 | `PATCH` | `/categories/:id` | `UpdateCategoryDto` | `200` category | `parentCategoryId` may be set to `null` |
 | `DELETE` | `/categories/:id` | – | `204` empty | `404` if missing; `400` if still referenced |
-| `POST` | `/descriptions` | `CreateDescriptionDto` | `201` description | |
-| `GET` | `/descriptions` | – | `200` description[] | ordered by `id` |
+| `POST` | `/descriptions` | `CreateDescriptionDto` | `201` description | creates one row per language |
+| `GET` | `/descriptions` | – | `200` description[] | one object per id with all translations |
 | `GET` | `/descriptions/:id` | – | `200` description | `404` if missing |
-| `PATCH` | `/descriptions/:id` | `UpdateDescriptionDto` | `200` description | |
+| `PATCH` | `/descriptions/:id` | `UpdateDescriptionDto` | `200` description | partial `translations` map |
 | `DELETE` | `/descriptions/:id` | – | `204` empty | `404` if missing; `400` if still referenced |
+| `GET` | `/languages` | – | `200` language[] | seeded `en` / `hr`, ordered by code |
+| `GET` | `/languages/:code` | – | `200` language | `404` if missing |
 | `POST` | `/chat-messages` | `CreateChatMessageDto` | `201` chat message | |
 | `GET` | `/chat-messages` | – | `200` chat message[] | ordered by `id` |
 | `GET` | `/chat-messages/:id` | – | `200` chat message | `404` if missing |
@@ -176,7 +178,7 @@ Source: `src/categories/categories.controller.ts`, `src/categories/categories.se
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `descriptionId` | int | yes | FK → `descriptions.id` |
+| `descriptionId` | int | yes | references `descriptions.id`; existence checked by the API |
 | `parentCategoryId` | int \| null | no | FK → `categories.id`; `null`/omitted = root category |
 
 Response: `id`, `descriptionId`, `parentCategoryId`, `createdAt`, `updatedAt`,
@@ -189,16 +191,50 @@ returns `400`.
 ### `/descriptions` — Description
 Source: `src/descriptions/descriptions.controller.ts`, `src/descriptions/descriptions.service.ts`
 
+A description is stored as one row per language under a shared `id`
+(`@@id([id, language])`). The API returns one object per id with a
+`translations` map, and every configured language must be supplied on create.
+
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `language` | enum | yes | `"en"` or `"hr"` |
-| `text` | string | yes | trimmed, 1–225 chars |
+| `translations` | object | yes (create) | map of language code → text; trimmed, 1–225 chars each |
 
-Response: `id`, `language`, `text`, `createdAt`, `updatedAt`, `createdBy`,
-`updatedBy`.
+`POST /descriptions` requires a text for **every** language in the `Language`
+table (`en` and `hr`). A missing or unknown language returns `400`, for example
+`Missing translations for: hr`.
+
+```http
+POST /descriptions
+{ "translations": { "en": "Cars", "hr": "Automobili" } }
+```
+
+`PATCH /descriptions/:id` accepts a subset of the map and updates only those
+languages:
+
+```http
+PATCH /descriptions/7
+{ "translations": { "hr": "Vozila" } }
+```
+
+Response: `id`, `translations` (`{ "en": "...", "hr": "..." }`), `createdAt`,
+`updatedAt`, `createdBy`, `updatedBy`. `createdAt`/`createdBy` come from the
+oldest translation row; `updatedAt`/`updatedBy` from the most recently changed
+one.
 
 Notes: deleting a description referenced by a category, facet schema, or facet
-value option returns `400`.
+value option returns `400`. Category/FacetSchema/FacetValueOption reference
+`descriptions.id` but cannot declare a SQLite foreign key (the API checks
+existence on create/update), because `id` is no longer unique on its own.
+
+### `/languages` — Language
+Source: `src/languages/languages.controller.ts`,
+`src/languages/languages.service.ts`
+
+Read-only: the migration seeds `en` (English) and `hr` (Hrvatski). Adding a
+language also requires translating every description, so create/update/delete
+routes are not exposed.
+
+Response: `code`, `name`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`.
 
 ### `/chat-messages` — ChatMessage
 Source: `src/chat-messages/chat-messages.controller.ts`, `src/chat-messages/chat-messages.service.ts`
@@ -302,7 +338,7 @@ Source: `src/facet-schemas/facet-schemas.controller.ts`, `src/facet-schemas/face
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `descriptionId` | int | yes | FK → `descriptions.id` |
+| `descriptionId` | int | yes | references `descriptions.id`; existence checked by the API |
 | `name` | string | yes | trimmed, 1–225 chars, **unique** |
 | `categoryId` | int | yes | FK → `categories.id` |
 
@@ -314,7 +350,7 @@ Source: `src/facet-value-options/facet-value-options.controller.ts`, `src/facet-
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
-| `descriptionId` | int | yes | FK → `descriptions.id` |
+| `descriptionId` | int | yes | references `descriptions.id`; existence checked by the API |
 | `schemaId` | int | yes | FK → `facet-schemas.id` |
 
 Response: `id`, `descriptionId`, `schemaId`, `createdAt`, `updatedAt`,
@@ -338,25 +374,25 @@ Response: `id`, `facetValueOptionId`, `listingId`, `createdAt`, `updatedAt`,
 | Child | Field | Parent | onDelete |
 | --- | --- | --- | --- |
 | Listing | `categoryId` | Category.id | Restrict (default) → `400` |
-| Category | `descriptionId` | Description.id | Restrict → `400` |
 | Category | `parentCategoryId` | Category.id | Set Null |
 | ChatMessage | `threadId` | ChatThread.id | Cascade |
 | ListingChatThread | `listingId` | Listing.id | Cascade |
 | ListingChatThread | `chatThreadId` | ChatThread.id | Cascade (unique) |
 | InboxItem | `chatThreadId` | ChatThread.id | Cascade (unique) |
 | ListingImage | `listingId` | Listing.id | Cascade |
-| FacetSchema | `descriptionId` | Description.id | Restrict → `400` |
 | FacetSchema | `categoryId` | Category.id | Restrict → `400` |
-| FacetValueOption | `descriptionId` | Description.id | Restrict → `400` |
 | FacetValueOption | `schemaId` | FacetSchema.id | Cascade |
 | FacetValueSelection | `facetValueOptionId` | FacetValueOption.id | Cascade |
 | FacetValueSelection | `listingId` | Listing.id | Cascade |
 
 Plain integer columns with **no** foreign key: `Listing.userId`,
-`InboxItem.userId`, `createdBy`, `updatedBy`.
+`InboxItem.userId`, `Category.descriptionId`, `FacetSchema.descriptionId`,
+`FacetValueOption.descriptionId`, `createdBy`, `updatedBy`.
 
 ### Unique constraints
 - `users.email`
+- `languages.code` (primary key)
+- `descriptions` composite primary key `(id, language)`
 - `facet-schemas.name`
 - `listing-chat-threads.chatThreadId`
 - `inbox-items.chatThreadId`
@@ -389,7 +425,7 @@ curl $BASE/
 # Create a description, then a category, then a facet schema
 curl -X POST $BASE/descriptions \
   -H 'content-type: application/json' \
-  -d '{"language":"en","text":"Cars"}'
+  -d '{"translations":{"en":"Cars","hr":"Automobili"}}'
 
 curl -X POST $BASE/categories \
   -H 'content-type: application/json' \
@@ -434,6 +470,7 @@ curl -X DELETE $BASE/categories/1 -i
 | listings | `src/listings/listings.controller.ts` | `src/listings/listings.service.ts` | `Listing` |
 | categories | `src/categories/categories.controller.ts` | `src/categories/categories.service.ts` | `Category` |
 | descriptions | `src/descriptions/descriptions.controller.ts` | `src/descriptions/descriptions.service.ts` | `Description` |
+| languages | `src/languages/languages.controller.ts` | `src/languages/languages.service.ts` | `Language` |
 | chat-messages | `src/chat-messages/chat-messages.controller.ts` | `src/chat-messages/chat-messages.service.ts` | `ChatMessage` |
 | chat-threads | `src/chat-threads/chat-threads.controller.ts` | `src/chat-threads/chat-threads.service.ts` | `ChatThread` |
 | chat-events | `src/chat-events/chat-events.controller.ts` | `src/chat-events/chat-events.service.ts` | – |

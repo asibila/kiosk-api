@@ -13,6 +13,7 @@ import { FacetSchemasModule } from './facet-schemas/facet-schemas.module.js';
 import { FacetValueOptionsModule } from './facet-value-options/facet-value-options.module.js';
 import { FacetValueSelectionsModule } from './facet-value-selections/facet-value-selections.module.js';
 import { InboxItemsModule } from './inbox-items/inbox-items.module.js';
+import { LanguagesModule } from './languages/languages.module.js';
 import { ListingImagesModule } from './listing-images/listing-images.module.js';
 import { ListingsModule } from './listings/listings.module.js';
 import { ListingChatThreadsModule } from './listing-chat-threads/listing-chat-threads.module.js';
@@ -34,6 +35,7 @@ import { UsersModule } from './users/users.module.js';
     ChatThreadsModule,
     ListingChatThreadsModule,
     InboxItemsModule,
+    LanguagesModule,
     FacetSchemasModule,
     FacetValueOptionsModule,
     FacetValueSelectionsModule,

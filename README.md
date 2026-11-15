@@ -133,7 +133,8 @@ CRUD controller per entity. Every resource has the same endpoints:
 | --- | --- |
 | `/listings` | `categoryId`, `orientation` (`buy` or `sell`), `userId` |
 | `/categories` | `descriptionId`, `parentCategoryId` (nullable) |
-| `/descriptions` | `language` (`en` or `hr`), `text` (max 225) |
+| `/descriptions` | `{ translations: { en, hr } }` (both language texts; update accepts a subset) |
+| `/languages` | read-only: `GET /languages`, `GET /languages/:code` (`en`, `hr`) |
 | `/chat-messages` | `text` (max 225), `threadId`, `userId` (id of the user which created the message) | `201` created row |
 | `/chat-threads` | - (no fields) |
 | `/listing-chat-threads` | `listingId`, `chatThreadId` |
@@ -145,6 +146,17 @@ CRUD controller per entity. Every resource has the same endpoints:
 Live chat uses `GET /chat-events/stream` (Server-Sent Events). It emits
 `message.created` / `message.updated` events with the saved `ChatMessage` row,
 plus a `ping` heartbeat; it is not part of the CRUD table above.
+
+The `Language` table is seeded by the migration with `en` (English) and `hr`
+(Hrvatski); it is exposed read-only. A `Description` is stored as one row per
+language with the composite primary key `(id, language)`, so every description
+id always has both texts. `POST /descriptions` therefore creates both rows and
+returns a single object with a `translations` map; `PATCH /descriptions/:id`
+accepts `{ "translations": { "hr": "..." } }` and updates only the supplied
+language(s). `Category.descriptionId`, `FacetSchema.descriptionId` and
+`FacetValueOption.descriptionId` reference the description `id` (the API checks
+that it exists, but SQLite cannot declare a foreign key to a non-unique column,
+so there is no DB-level constraint).
 
 Listing images are not plain CRUD rows: `POST /listing-images` accepts a
 multipart upload (`file` + `listingId`), stores the binary under
@@ -171,6 +183,14 @@ curl -X POST http://localhost:3000/categories \
   -H 'content-type: application/json' \
   -H 'x-actor-id: 1' \
   -d '{"descriptionId": 1}'
+```
+
+Create descriptions with both language texts before the category:
+
+```bash
+curl -X POST http://localhost:3000/descriptions \
+  -H 'content-type: application/json' \
+  -d '{"translations":{"en":"Cars","hr":"Automobili"}}'
 ```
 
 The keys are stored as plain integer columns rather than foreign keys, so audit
