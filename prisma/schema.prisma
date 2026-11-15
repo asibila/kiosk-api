@@ -8,6 +8,12 @@
 //
 // The SQLite file lives at prisma/dev.db (see DATABASE_URL in .env); the path
 // is resolved relative to this directory.
+//
+// Every entity carries audit columns: `createdAt` and `updatedAt` are managed
+// automatically, while `createdBy` and `updatedBy` hold the id of the user that
+// performed the change. They are filled from the optional `x-actor-id` request
+// header (see `@ActorId()` and `CrudService`) and are intentionally not foreign
+// keys, so audit rows survive user deletion.
 
 generator client {
   provider = "prisma-client-js"
@@ -16,6 +22,18 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+/// A listing is either an offer to buy or an offer to sell.
+enum Orientation {
+  buy
+  sell
+}
+
+/// Languages a description can be translated to.
+enum Language {
+  en
+  hr
 }
 
 // Example:
@@ -37,4 +55,201 @@ model User {
   updatedAt    DateTime @updatedAt
 
   @@index([name])
+}
+
+/// A listing filed under a category.
+model Listing {
+  id          Int         @id @default(autoincrement())
+  categoryId  Int
+  orientation Orientation
+  userId      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  category             Category              @relation(fields: [categoryId], references: [id])
+  facetValueSelections FacetValueSelection[]
+  chatThreads          ListingChatThread[]
+
+  @@index([categoryId])
+  @@index([userId])
+}
+
+/// A node in the category tree. `parentCategoryId` is null for root categories.
+model Category {
+  id               Int  @id @default(autoincrement())
+  descriptionId    Int
+  parentCategoryId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  description     Description   @relation(fields: [descriptionId], references: [id])
+  parentCategory  Category?     @relation("CategoryTree", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+  childCategories Category[]    @relation("CategoryTree")
+  listings        Listing[]
+  facetSchemas    FacetSchema[]
+
+  @@index([descriptionId])
+  @@index([parentCategoryId])
+}
+
+/// A translated piece of text, shared by categories and facets.
+model Description {
+  id       Int      @id @default(autoincrement())
+  language Language
+  text     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  categories        Category[]
+  facetSchemas      FacetSchema[]
+  facetValueOptions FacetValueOption[]
+}
+
+/// A message inside a chat thread. `userId` is the id of the user which created it.
+model ChatMessage {
+  id       Int    @id @default(autoincrement())
+  text     String
+  threadId Int
+  userId   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+}
+
+/// A conversation. `userId` is the left-hand side of the chat.
+model ChatThread {
+  id     Int @id @default(autoincrement())
+  userId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  messages    ChatMessage[]
+  listingLink ListingChatThread?
+  inboxItem   InboxItem?
+
+  @@index([userId])
+}
+
+/// A user's inbox.
+model InboxList {
+  id     Int @id @default(autoincrement())
+  userId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  items InboxItem[]
+
+  @@index([userId])
+}
+
+/// Attaches a chat thread to the listing it is about.
+model ListingChatThread {
+  id           Int @id @default(autoincrement())
+  listingId    Int
+  chatThreadId Int @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  listing    Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  chatThread ChatThread @relation(fields: [chatThreadId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+}
+
+/// A chat thread shown in an inbox.
+model InboxItem {
+  id           Int @id @default(autoincrement())
+  listId       Int
+  chatThreadId Int @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  list       InboxList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  chatThread ChatThread @relation(fields: [chatThreadId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+}
+
+/// A facet (filterable attribute) that belongs to a category.
+model FacetSchema {
+  id            Int    @id @default(autoincrement())
+  descriptionId Int
+  name          String @unique
+  categoryId    Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  description Description        @relation(fields: [descriptionId], references: [id])
+  category    Category           @relation(fields: [categoryId], references: [id])
+  options     FacetValueOption[]
+
+  @@index([descriptionId])
+  @@index([categoryId])
+}
+
+/// One selectable value of a facet.
+model FacetValueOption {
+  id            Int @id @default(autoincrement())
+  descriptionId Int
+  schemaId      Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  description Description           @relation(fields: [descriptionId], references: [id])
+  schema      FacetSchema           @relation(fields: [schemaId], references: [id], onDelete: Cascade)
+  selections  FacetValueSelection[]
+
+  @@index([descriptionId])
+  @@index([schemaId])
+}
+
+/// Links a listing to the facet values selected for it.
+model FacetValueSelection {
+  id                 Int @id @default(autoincrement())
+  facetValueOptionId Int
+  listingId          Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  facetValueOption FacetValueOption @relation(fields: [facetValueOptionId], references: [id], onDelete: Cascade)
+  listing          Listing          @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([facetValueOptionId])
+  @@index([listingId])
 }

@@ -96,6 +96,72 @@ scrypt and never returned; request bodies are validated with Zod schemas.
 `role` is `USER` (default) or `ADMIN`; `password` must be at least 8 characters;
 a duplicate `email` returns `409`.
 
+## Auth API
+
+`AuthController` exposes the sign-in endpoint used by the kiosk frontend. It
+validates an email + password pair against the scrypt-verified hash and returns
+the matching user's id.
+
+| Method | Route | Body | Result |
+| --- | --- | --- | --- |
+| `POST` | `/auth/login` | `{ email, password }` | `200` `{ userId }` |
+| – | – | – | `401` invalid email or password |
+
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"tino@example.com","password":"supersecret"}'
+```
+
+The response is intentionally minimal (`{ userId }`) — the frontend keeps the
+logged-in user client-side and sends the `x-actor-id` header on subsequent writes.
+
+## Catalog API
+
+The rest of the ER model lives in `prisma/schema.prisma` and is exposed by one
+CRUD controller per entity. Every resource has the same endpoints:
+
+| Method | Route | Body | Result |
+| --- | --- | --- | --- |
+| `POST` | `/<resource>` | fields below | `201` created row |
+| `GET` | `/<resource>` | – | `200` array, ordered by `id` |
+| `GET` | `/<resource>/:id` | – | `200` row, `404` if missing |
+| `PATCH` | `/<resource>/:id` | any of the fields below | `200` updated row |
+| `DELETE` | `/<resource>/:id` | – | `204`, `404` if missing |
+
+| Resource | Body |
+| --- | --- |
+| `/listings` | `categoryId`, `orientation` (`buy` or `sell`), `userId` |
+| `/categories` | `descriptionId`, `parentCategoryId` (nullable) |
+| `/descriptions` | `language` (`en` or `hr`), `text` (max 225) |
+| `/chat-messages` | `text` (max 225), `threadId`, `userId` (id of the user which created the message) | `201` created row |
+| `/chat-threads` | `userId` |
+| `/inbox-lists` | `userId` |
+| `/listing-chat-threads` | `listingId`, `chatThreadId` |
+| `/inbox-items` | `listId`, `chatThreadId` |
+| `/facet-schemas` | `descriptionId`, `name` (max 225), `categoryId` |
+| `/facet-value-options` | `descriptionId`, `schemaId` |
+| `/facet-value-selections` | `facetValueOptionId`, `listingId` |
+
+A duplicate unique value returns `409`, a reference to a row that does not
+exist returns `400`, and an unknown `:id` returns `404`.
+
+### Audit columns
+
+Every entity stores `createdAt`, `updatedAt`, `createdBy` and `updatedBy`.
+Prisma maintains the timestamps; `CrudService` fills the actor columns from the
+optional `x-actor-id` request header on `POST` and `PATCH`:
+
+```bash
+curl -X POST http://localhost:3000/categories \
+  -H 'content-type: application/json' \
+  -H 'x-actor-id: 1' \
+  -d '{"descriptionId": 1}'
+```
+
+The keys are stored as plain integer columns rather than foreign keys, so audit
+history survives user deletion.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
