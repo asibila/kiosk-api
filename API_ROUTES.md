@@ -25,7 +25,7 @@ AI agents and humans integrating with the API.
 
 | Method | Path | Request body | Success | Notes |
 | --- | --- | --- | --- | --- |
-| `POST` | `/auth/login` | `CreateLoginDto` | `200` `{ userId }` | `{ email, password }`; `401` invalid credentials |
+| `POST` | `/auth/login` | `CreateLoginDto` | `200` `{ userId }` | `{ email, password }`; `401` invalid credentials or deactivated user |
 | `POST` | `/users` | `CreateUserDto` | `201` user | password is hashed; never returned |
 | `GET` | `/users` | – | `200` user[] | ordered by `id` |
 | `GET` | `/users/:id` | – | `200` user | `404` if missing |
@@ -43,7 +43,7 @@ AI agents and humans integrating with the API.
 | `POST` | `/categories` | `CreateCategoryDto` | `201` category | |
 | `GET` | `/categories` | – | `200` category[] | ordered by `id` |
 | `GET` | `/categories/:id` | – | `200` category | `404` if missing |
-| `PATCH` | `/categories/:id` | `UpdateCategoryDto` | `200` category | `parentCategoryId` may be set to `null` |
+| `PATCH` | `/categories/:id` | `UpdateCategoryDto` | `200` category | `parentCategoryId` may be set to `null`; `400` if it would make the category its own ancestor |
 | `DELETE` | `/categories/:id` | – | `204` empty | `404` if missing; `400` if still referenced |
 | `POST` | `/descriptions` | `CreateDescriptionDto` | `201` description | creates one row per language |
 | `GET` | `/descriptions` | – | `200` description[] | one object per id with all translations |

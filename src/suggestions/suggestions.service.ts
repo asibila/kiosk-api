@@ -69,7 +69,8 @@ export class SuggestionsService {
     const categoryChain = new Set<number>();
     if (options.categoryId !== undefined) {
       let current = categoriesById.get(options.categoryId);
-      while (current) {
+      // Stops at the first repeated category, so a cycle in stored data ends the walk.
+      while (current && !categoryChain.has(current.id)) {
         categoryChain.add(current.id);
         current =
           current.parentCategoryId != null

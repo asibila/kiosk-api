@@ -19,7 +19,7 @@ describe('AuthService', () => {
 
   it('returns the user id when the credentials are valid', async () => {
     const hash = await hashPassword('super-secret');
-    prisma.user.findUnique.mockResolvedValue({ id: 7, passwordHash: hash });
+    prisma.user.findUnique.mockResolvedValue({ id: 7, passwordHash: hash, isActive: true });
 
     await expect(service.login('ada@example.com', 'super-secret')).resolves.toEqual({
       userId: 7,
@@ -28,13 +28,13 @@ describe('AuthService', () => {
 
   it('looks the user up by email (already lowercased by the login DTO)', async () => {
     const hash = await hashPassword('super-secret');
-    prisma.user.findUnique.mockResolvedValue({ id: 7, passwordHash: hash });
+    prisma.user.findUnique.mockResolvedValue({ id: 7, passwordHash: hash, isActive: true });
 
     await service.login('ada@example.com', 'super-secret');
 
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { email: 'ada@example.com' },
-      select: { id: true, passwordHash: true },
+      select: { id: true, passwordHash: true, isActive: true },
     });
   });
 
@@ -48,9 +48,18 @@ describe('AuthService', () => {
 
   it('throws Unauthorized when the password does not match', async () => {
     const hash = await hashPassword('super-secret');
-    prisma.user.findUnique.mockResolvedValue({ id: 7, passwordHash: hash });
+    prisma.user.findUnique.mockResolvedValue({ id: 7, passwordHash: hash, isActive: true });
 
     await expect(service.login('ada@example.com', 'wrong-password')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('throws Unauthorized for a deactivated account, even with the right password', async () => {
+    const hash = await hashPassword('super-secret');
+    prisma.user.findUnique.mockResolvedValue({ id: 7, passwordHash: hash, isActive: false });
+
+    await expect(service.login('ada@example.com', 'super-secret')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
   });
