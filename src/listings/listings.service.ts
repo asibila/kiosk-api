@@ -11,6 +11,7 @@ const listingSelect = {
   categoryId: true,
   orientation: true,
   userId: true,
+  isActive: true,
   ...auditSelect,
 } satisfies Prisma.ListingSelect;
 

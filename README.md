@@ -131,7 +131,8 @@ CRUD controller per entity. Every resource has the same endpoints:
 
 | Resource | Body |
 | --- | --- |
-| `/listings` | `categoryId`, `orientation` (`buy` or `sell`), `userId` |
+| `/listings` | `categoryId`, `orientation` (`buy` or `sell`), `userId`, optional `isActive` |
+| `/listing-translations` | `listingId`, `language`, `title` (upsert per language) |
 | `/categories` | `descriptionId`, `parentCategoryId` (nullable) |
 | `/descriptions` | `{ translations: { en, hr } }` (both language texts; update accepts a subset) |
 | `/languages` | read-only: `GET /languages`, `GET /languages/:code` (`en`, `hr`) |
@@ -161,6 +162,20 @@ so there is no DB-level constraint).
 The catalog migration associated with the language work also marks `condition`
 as a generic facet (applies to every product), moves `brand` to its parent
 Electronics category and adds a Mobile phones `screen_size` facet.
+
+### Drafts and listing titles
+
+`Listing.isActive` defaults to `true`. The wizard creates a listing with
+`isActive: false` when the interview's Next button opens the edit step, writes
+the interview answers to it, and flips it to `true` on Publish. Inactive drafts
+are shown italic in the owner's drawer with a `Draft` marker; public search and
+the listing page hide them from other users.
+
+`ListingTranslation` stores one title per `(listingId, language)` and cascades
+with the listing. `POST /listing-translations` upserts, so the edit screen can
+save the current language and the translate dialog can add English/Croatian
+titles independently. Missing languages fall back to another saved title and
+finally to the generated `"Category #id"` label.
 
 ### Facet suggestions
 

@@ -5,6 +5,7 @@ export const createListingSchema = z.object({
   categoryId: z.number().int().positive(),
   orientation: z.enum(Orientation),
   userId: z.number().int().positive(),
+  isActive: z.boolean().optional(),
 });
 
 export type CreateListingDto = z.infer<typeof createListingSchema>;

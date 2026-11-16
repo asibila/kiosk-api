@@ -31,11 +31,15 @@ AI agents and humans integrating with the API.
 | `GET` | `/users/:id` | – | `200` user | `404` if missing |
 | `PATCH` | `/users/:id` | `UpdateUserDto` | `200` user | any subset of fields; `password` re-hashed |
 | `DELETE` | `/users/:id` | – | `204` empty | `404` if missing |
-| `POST` | `/listings` | `CreateListingDto` | `201` listing | |
-| `GET` | `/listings` | – | `200` listing[] | ordered by `id` |
-| `GET` | `/listings/:id` | – | `200` listing | `404` if missing |
+| `POST` | `/listings` | `CreateListingDto` | `201` listing | `isActive` defaults to `true`; drafts pass `false` |
+| `GET` | `/listings` | - | `200` listing[] | ordered by `id` |
+| `GET` | `/listings/:id` | - | `200` listing | `404` if missing |
 | `PATCH` | `/listings/:id` | `UpdateListingDto` | `200` listing | |
-| `DELETE` | `/listings/:id` | – | `204` empty | `404` if missing |
+| `DELETE` | `/listings/:id` | - | `204` empty | `404` if missing |
+| `POST` | `/listing-translations` | `UpsertListingTranslationDto` | `201` translation | upserts on `(listingId, language)` |
+| `GET` | `/listing-translations` | optional `?listingId=` | `200` translation[] | ordered by listing, language |
+| `GET` | `/listing-translations/:listingId/:language` | - | `200` translation | `404` if missing |
+| `DELETE` | `/listing-translations/:listingId/:language` | - | `204` empty | `404` if missing |
 | `POST` | `/categories` | `CreateCategoryDto` | `201` category | |
 | `GET` | `/categories` | – | `200` category[] | ordered by `id` |
 | `GET` | `/categories/:id` | – | `200` category | `404` if missing |
@@ -170,9 +174,29 @@ Source: `src/listings/listings.controller.ts`, `src/listings/listings.service.ts
 | `categoryId` | int | yes | FK → `categories.id` (must exist) |
 | `orientation` | enum | yes | `"buy"` or `"sell"` |
 | `userId` | int | yes | plain integer (not a FK), semantically a user id |
+| `isActive` | boolean | no | defaults to `true`; the wizard creates drafts with `false` and Publish sets `true` |
 
-Response: `id`, `categoryId`, `orientation`, `userId`, `createdAt`,
+Response: `id`, `categoryId`, `orientation`, `userId`, `isActive`, `createdAt`,
 `updatedAt`, `createdBy`, `updatedBy`.
+
+### `/listing-translations` — ListingTranslation
+Source: `src/listing-translations/listing-translations.controller.ts`,
+`src/listing-translations/listing-translations.service.ts`
+
+One localized title per listing and language, keyed by `(listingId, language)`.
+Titles are deliberately separate from the shared `Description` catalog: deleting
+a listing cascades its titles, and the rows have a real FK to `listings.id`.
+
+| Field | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `listingId` | int | yes | FK → `listings.id` |
+| `language` | string | yes | FK → `languages.code` (`en`, `hr`) |
+| `title` | string | yes | trimmed, 1–225 chars |
+
+`POST` upserts: the same call creates a missing translation or replaces the
+existing one. `DELETE` removes one language. Clients resolve missing
+translations themselves; the frontend falls back to the UI language, English,
+any available title, then the generated `"Category #id"` label.
 
 ### `/categories` — Category
 Source: `src/categories/categories.controller.ts`, `src/categories/categories.service.ts`

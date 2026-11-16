@@ -15,6 +15,7 @@ import { FacetValueSelectionsModule } from './facet-value-selections/facet-value
 import { InboxItemsModule } from './inbox-items/inbox-items.module.js';
 import { LanguagesModule } from './languages/languages.module.js';
 import { ListingImagesModule } from './listing-images/listing-images.module.js';
+import { ListingTranslationsModule } from './listing-translations/listing-translations.module.js';
 import { ListingsModule } from './listings/listings.module.js';
 import { ListingChatThreadsModule } from './listing-chat-threads/listing-chat-threads.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -30,6 +31,7 @@ import { UsersModule } from './users/users.module.js';
     AuthModule,
     ListingsModule,
     ListingImagesModule,
+    ListingTranslationsModule,
     CategoriesModule,
     DescriptionsModule,
     ChatMessagesModule,
