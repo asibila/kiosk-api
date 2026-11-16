@@ -175,12 +175,15 @@ Source: `src/listings/listings.controller.ts`, `src/listings/listings.service.ts
 | `orientation` | enum | yes | `"buy"` or `"sell"` |
 | `userId` | int | yes | plain integer (not a FK), semantically a user id |
 | `isActive` | boolean | no | defaults to `true`; the wizard creates drafts with `false` and Publish sets `true` |
+| `price` | number \| null | no | nullable float, the answer to the price question |
+| `year` | int \| null | no | nullable integer, the answer to the year question |
 
-Response: `id`, `categoryId`, `orientation`, `userId`, `isActive`, `createdAt`,
-`updatedAt`, `createdBy`, `updatedBy`, `facetsCount`.
+Response: `id`, `categoryId`, `orientation`, `userId`, `isActive`, `price`,
+`year`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `facetsCount`.
 
-`facetsCount` is the number of `FacetValueSelection` rows for the listing: how
-many interview questions have an answered value. Brand-new listings return `0`.
+`facetsCount` is the number of answered interview questions: the listing's
+`FacetValueSelection` rows plus `1` when `price` is not null and `1` when `year`
+is not null. Brand-new listings with neither field set return `0`.
 
 ### `/listing-translations` — ListingTranslation
 Source: `src/listing-translations/listing-translations.controller.ts`,

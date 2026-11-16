@@ -73,6 +73,8 @@ model Listing {
   orientation Orientation
   userId      Int
   isActive    Boolean     @default(true)
+  price       Float?
+  year        Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

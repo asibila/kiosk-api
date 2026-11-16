@@ -18,6 +18,8 @@ function createService() {
       orientation: 'sell' as const,
       userId: 1,
       isActive: true,
+      price: 199.99,
+      year: 2024,
       ...audit,
       _count: { facetValueSelections: 3 },
     },
@@ -27,6 +29,8 @@ function createService() {
       orientation: 'buy' as const,
       userId: 2,
       isActive: true,
+      price: null,
+      year: null,
       ...audit,
       _count: { facetValueSelections: 0 },
     },
@@ -39,13 +43,13 @@ function createService() {
         async ({ where }: { where: { id: number } }) =>
           rows.find((row) => row.id === where.id) ?? null,
       ),
-      create: vi.fn(async () => {
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const { _count: _ignored, ...row } = rows[1];
-        return row;
+        return { ...row, price: data.price ?? null, year: data.year ?? null };
       }),
-      update: vi.fn(async () => {
+      update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const { _count: _ignored, ...row } = rows[1];
-        return row;
+        return { ...row, price: data.price ?? null, year: data.year ?? null };
       }),
     },
     facetValueSelection: {
@@ -63,23 +67,23 @@ function createService() {
 }
 
 describe('ListingsService.facetsCount', () => {
-  it('adds the number of selections to every listing', async () => {
+  it('counts selections plus the answered price and year fields', async () => {
     const { service } = createService();
 
     const rows = await service.findAll();
 
     expect(rows.map((row) => [row.id, row.facetsCount])).toEqual([
-      [10, 3],
+      [10, 5],
       [11, 0],
     ]);
   });
 
-  it('adds the number of selections to a single listing', async () => {
+  it('adds the number of selections and field answers to a single listing', async () => {
     const { service } = createService();
 
     await expect(service.findOne(10)).resolves.toMatchObject({
       id: 10,
-      facetsCount: 3,
+      facetsCount: 5,
     });
   });
 
@@ -89,7 +93,7 @@ describe('ListingsService.facetsCount', () => {
     await expect(service.findOne(999)).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('reports zero selections for a freshly created listing', async () => {
+  it('reports zero answers for a freshly created listing without price or year', async () => {
     const { service } = createService();
 
     await expect(
@@ -100,6 +104,21 @@ describe('ListingsService.facetsCount', () => {
         isActive: false,
       }),
     ).resolves.toMatchObject({ id: 11, facetsCount: 0 });
+  });
+
+  it('counts price and year supplied on create', async () => {
+    const { service } = createService();
+
+    await expect(
+      service.create({
+        categoryId: 2,
+        orientation: 'sell',
+        userId: 1,
+        isActive: false,
+        price: 199.99,
+        year: 2024,
+      }),
+    ).resolves.toMatchObject({ id: 11, facetsCount: 2 });
   });
 
   it('recounts the selections after an update', async () => {

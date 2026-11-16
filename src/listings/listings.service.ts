@@ -12,6 +12,8 @@ const listingSelect = {
   orientation: true,
   userId: true,
   isActive: true,
+  price: true,
+  year: true,
   ...auditSelect,
 } satisfies Prisma.ListingSelect;
 
@@ -52,8 +54,9 @@ export class ListingsService extends CrudService<
     actorId: number | null = null,
   ): Promise<Listing> {
     const row = await super.create(dto, actorId);
-    // A listing that was just created cannot have selections yet.
-    return { ...row, facetsCount: 0 };
+    // A listing that was just created cannot have selections yet, but price
+    // and year already count as answered interview questions.
+    return { ...row, facetsCount: this.fieldAnswerCount(row) };
   }
 
   override async findAll(): Promise<Listing[]> {
@@ -84,14 +87,22 @@ export class ListingsService extends CrudService<
     actorId: number | null = null,
   ): Promise<Listing> {
     const row = await super.update(id, dto, actorId);
-    const facetsCount = await this.prisma.facetValueSelection.count({
+    const selectionCount = await this.prisma.facetValueSelection.count({
       where: { listingId: id },
     });
 
-    return { ...row, facetsCount };
+    return { ...row, facetsCount: selectionCount + this.fieldAnswerCount(row) };
   }
 
   private withFacetsCount({ _count, ...row }: ListingWithCount): Listing {
-    return { ...row, facetsCount: _count.facetValueSelections };
+    return {
+      ...row,
+      facetsCount: _count.facetValueSelections + this.fieldAnswerCount(row),
+    };
+  }
+
+  /** Price and year are interview answers stored on the listing itself. */
+  private fieldAnswerCount(row: { price: number | null; year: number | null }): number {
+    return (row.price != null ? 1 : 0) + (row.year != null ? 1 : 0);
   }
 }
