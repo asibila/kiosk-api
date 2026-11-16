@@ -6,8 +6,9 @@
 //      database and regenerate the client.
 //   3. Inject `PrismaService` wherever you need database access.
 //
-// The SQLite file lives at prisma/dev.db (see DATABASE_URL in .env); the path
-// is resolved relative to this directory.
+// The database is PostgreSQL. Set DATABASE_URL in .env (see .env.example) to a
+// `postgresql://` connection string; migrations live in prisma/migrations.
+// Older SQLite migrations are kept in prisma/migrations-sqlite for reference.
 //
 // Every entity carries audit columns: `createdAt` and `updatedAt` are managed
 // automatically, while `createdBy` and `updatedBy` hold the id of the user that
@@ -20,7 +21,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -77,8 +77,17 @@ $ npm run prisma:studio
 ```
 
 The connection string lives in `.env` (`DATABASE_URL`, copy from `.env.example`).
-It points at a SQLite file, `prisma/dev.db`, which is created on first connect
-and is git-ignored.
+It is a PostgreSQL connection string; URL-encode special characters in the
+password (`!` becomes `%21`). Create the local database once with:
+
+```bash
+$ createdb -U postgres kiosk
+# or: psql -U postgres -c "CREATE DATABASE kiosk;"
+```
+
+Then apply migrations with `npm run prisma:deploy` (or `npm run prisma:migrate`
+while developing). The SQLite migrations from before the switch are kept in
+`prisma/migrations-sqlite/` for reference and are not applied anymore.
 
 ## Users API
 
@@ -156,8 +165,8 @@ returns a single object with a `translations` map; `PATCH /descriptions/:id`
 accepts `{ "translations": { "hr": "..." } }` and updates only the supplied
 language(s). `Category.descriptionId`, `FacetSchema.descriptionId` and
 `FacetValueOption.descriptionId` reference the description `id` (the API checks
-that it exists, but SQLite cannot declare a foreign key to a non-unique column,
-so there is no DB-level constraint).
+that it exists, but the description id is not unique on its own — it is half of
+the `(id, language)` primary key — so there is no DB-level constraint).
 
 The catalog migration associated with the language work also marks `condition`
 as a generic facet (applies to every product), moves `brand` to its parent
@@ -235,6 +244,19 @@ The keys are stored as plain integer columns rather than foreign keys, so audit
 history survives user deletion.
 
 ## Deployment
+
+The API needs a PostgreSQL database in production. On Render:
+
+1. Create a **Postgres** instance in the same region as the web service.
+2. Set the web service's `DATABASE_URL` to the instance's **Internal Database
+   URL** (it already includes `sslmode=require`).
+3. Deploy. `npm run start:prod` runs `prisma migrate deploy` before starting the
+   server, so the schema and the seeded languages are created automatically.
+
+The database starts otherwise empty, so create categories, facets and listings
+through the API or add a seed script before expecting search results. This
+replaces the old SQLite file, which was wiped on every deploy because the web
+service has no persistent disk.
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 

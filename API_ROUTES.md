@@ -10,7 +10,7 @@ AI agents and humans integrating with the API.
 | --- | --- |
 | Base URL | `http://localhost:${PORT ?? 3000}` (no global prefix, no `/api`, no version segment) |
 | Framework | NestJS 12, Express adapter, ESM |
-| Database | SQLite via Prisma 6 (`prisma/schema.prisma`, `prisma/dev.db`) |
+| Database | PostgreSQL via Prisma 6 (`prisma/schema.prisma`, `DATABASE_URL` in `.env`) |
 | Content type | `application/json` for request bodies |
 | Auth | Login exists: `POST /auth/login` validates email + password and returns `{ userId }`. No auth guards on the other routes yet — everything else stays public. |
 | Validation | Global `StandardSchemaValidationPipe`; Zod schemas attached per body with `@Body({ schema })` |
@@ -248,8 +248,8 @@ one.
 
 Notes: deleting a description referenced by a category, facet schema, or facet
 value option returns `400`. Category/FacetSchema/FacetValueOption reference
-`descriptions.id` but cannot declare a SQLite foreign key (the API checks
-existence on create/update), because `id` is no longer unique on its own.
+`descriptions.id` but cannot declare a foreign key (the API checks existence on
+create/update), because `id` is no longer unique on its own.
 
 ### `/languages` — Language
 Source: `src/languages/languages.controller.ts`,

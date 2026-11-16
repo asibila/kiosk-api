@@ -61,7 +61,7 @@ const toDto = (row: ListingImage): ListingImageDto => ({
 
 /**
  * Stores listing images on disk (`uploads/listing-images/`) and keeps only the
- * metadata in SQLite. There can be zero or more images per listing.
+ * metadata in the database. There can be zero or more images per listing.
  */
 @Injectable()
 export class ListingImagesService implements OnModuleInit {
