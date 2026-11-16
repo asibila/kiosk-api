@@ -25,6 +25,12 @@ export type Category = CategoryRow & {
    * two numeric range questions that have no `FacetSchema` row.
    */
   facetsCountMax: number;
+  /**
+   * The subset of `facetsCountMax` that can be answered with a
+   * `FacetValueSelection`. Price and year are numeric range questions and are
+   * excluded, so this is the denominator for a listing's completion score.
+   */
+  facetsCountMaxAnswerable: number;
 };
 
 /**
@@ -59,44 +65,72 @@ type FacetSchemaForCount = {
   isGeneric: boolean;
 };
 
+export type FacetCounts = {
+  /** Questions that can be answered with a `FacetValueSelection`. */
+  answerable: number;
+  /** `answerable` plus the price/year range questions, never below three. */
+  max: number;
+};
+
 /**
  * Counts the interview questions for one category. A question applies when it
  * is generic or when its facet schema belongs to the category or one of its
- * ancestors. The two range facets (price and year) are always included, which
- * is why every category has a maximum of at least three.
+ * ancestors. The two range facets (price and year) are always part of `max`,
+ * which is why every category has a maximum of at least three.
  */
+export function facetCountsFor(
+  categoryId: number,
+  categories: CategoryForTree[],
+  facetSchemas: FacetSchemaForCount[],
+): FacetCounts {
+  let answerable: number;
+
+  if (categoryId === ALL_CATEGORY_ID) {
+    answerable = new Set(
+      facetSchemas.filter((schema) => schema.isGeneric).map((schema) => schema.id),
+    ).size;
+  } else {
+    const parents = new Map(
+      categories.map((category) => [category.id, category.parentCategoryId]),
+    );
+    const chain = new Set<number>();
+    let currentId: number | null = categoryId;
+
+    // Stop at a null parent or at a repeated id, so a corrupt tree cannot loop.
+    while (currentId !== null && !chain.has(currentId)) {
+      chain.add(currentId);
+      currentId = parents.get(currentId) ?? null;
+    }
+
+    const applicable = new Set<number>();
+    for (const schema of facetSchemas) {
+      if (schema.isGeneric || chain.has(schema.categoryId)) {
+        applicable.add(schema.id);
+      }
+    }
+    answerable = applicable.size;
+  }
+
+  return {
+    answerable,
+    max: Math.max(MIN_FACETS_COUNT_MAX, answerable + RANGE_FACET_COUNT),
+  };
+}
+
 export function facetsCountMaxFor(
   categoryId: number,
   categories: CategoryForTree[],
   facetSchemas: FacetSchemaForCount[],
 ): number {
-  if (categoryId === ALL_CATEGORY_ID) {
-    const genericCount = new Set(
-      facetSchemas.filter((schema) => schema.isGeneric).map((schema) => schema.id),
-    ).size;
-    return Math.max(MIN_FACETS_COUNT_MAX, genericCount + RANGE_FACET_COUNT);
-  }
+  return facetCountsFor(categoryId, categories, facetSchemas).max;
+}
 
-  const parents = new Map(
-    categories.map((category) => [category.id, category.parentCategoryId]),
-  );
-  const chain = new Set<number>();
-  let currentId: number | null = categoryId;
-
-  // Stop at a null parent or at a repeated id, so a corrupt tree cannot loop.
-  while (currentId !== null && !chain.has(currentId)) {
-    chain.add(currentId);
-    currentId = parents.get(currentId) ?? null;
-  }
-
-  const applicable = new Set<number>();
-  for (const schema of facetSchemas) {
-    if (schema.isGeneric || chain.has(schema.categoryId)) {
-      applicable.add(schema.id);
-    }
-  }
-
-  return Math.max(MIN_FACETS_COUNT_MAX, applicable.size + RANGE_FACET_COUNT);
+export function facetsCountMaxAnswerableFor(
+  categoryId: number,
+  categories: CategoryForTree[],
+  facetSchemas: FacetSchemaForCount[],
+): number {
+  return facetCountsFor(categoryId, categories, facetSchemas).answerable;
 }
 
 @Injectable()
@@ -122,7 +156,7 @@ export class CategoriesService extends CrudService<
   ): Promise<Category> {
     await this.descriptions.assertExists(dto.descriptionId);
     const row = await super.create(dto, actorId);
-    return this.withFacetsCountMax(row);
+    return this.withFacetCounts(row);
   }
 
   /**
@@ -142,10 +176,14 @@ export class CategoriesService extends CrudService<
 
     return [
       all,
-      ...rows.map((row) => ({
-        ...row,
-        facetsCountMax: facetsCountMaxFor(row.id, categories, facetSchemas),
-      })),
+      ...rows.map((row) => {
+        const counts = facetCountsFor(row.id, categories, facetSchemas);
+        return {
+          ...row,
+          facetsCountMax: counts.max,
+          facetsCountMaxAnswerable: counts.answerable,
+        };
+      }),
     ];
   }
 
@@ -159,7 +197,7 @@ export class CategoriesService extends CrudService<
     }
 
     const row = await super.findOne(id);
-    return this.withFacetsCountMax(row);
+    return this.withFacetCounts(row);
   }
 
   override async update(
@@ -177,7 +215,7 @@ export class CategoriesService extends CrudService<
       await this.assertNoCycle(id, dto.parentCategoryId);
     }
     const row = await super.update(id, dto, actorId);
-    return this.withFacetsCountMax(row);
+    return this.withFacetCounts(row);
   }
 
   override async remove(id: number): Promise<void> {
@@ -187,15 +225,17 @@ export class CategoriesService extends CrudService<
     return super.remove(id);
   }
 
-  private async withFacetsCountMax(row: CategoryRow): Promise<Category> {
+  private async withFacetCounts(row: CategoryRow): Promise<Category> {
     const [categories, facetSchemas] = await Promise.all([
       this.loadCategoryTree(),
       this.loadFacetSchemas(),
     ]);
+    const counts = facetCountsFor(row.id, categories, facetSchemas);
 
     return {
       ...row,
-      facetsCountMax: facetsCountMaxFor(row.id, categories, facetSchemas),
+      facetsCountMax: counts.max,
+      facetsCountMaxAnswerable: counts.answerable,
     };
   }
 
@@ -203,6 +243,8 @@ export class CategoriesService extends CrudService<
     categories: CategoryForTree[],
     facetSchemas: FacetSchemaForCount[],
   ): Category {
+    const counts = facetCountsFor(ALL_CATEGORY_ID, categories, facetSchemas);
+
     return {
       id: ALL_CATEGORY_ID,
       descriptionId: 0,
@@ -212,7 +254,8 @@ export class CategoriesService extends CrudService<
       updatedAt: new Date(0),
       createdBy: null,
       updatedBy: null,
-      facetsCountMax: facetsCountMaxFor(ALL_CATEGORY_ID, categories, facetSchemas),
+      facetsCountMax: counts.max,
+      facetsCountMaxAnswerable: counts.answerable,
     };
   }
 

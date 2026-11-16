@@ -210,13 +210,17 @@ Source: `src/categories/categories.controller.ts`, `src/categories/categories.se
 | `parentCategoryId` | int \| null | no | FK → `categories.id`; `null`/omitted = root category |
 
 Response: `id`, `descriptionId`, `parentCategoryId`, `createdAt`, `updatedAt`,
-`createdBy`, `updatedBy`, `facetsCountMax`.
+`createdBy`, `updatedBy`, `facetsCountMax`, `facetsCountMaxAnswerable`.
 
 `facetsCountMax` is the number of interview questions that apply to the
 category: every generic `FacetSchema`, every `FacetSchema` defined on the
 category or one of its ancestors, plus the two numeric range questions
 (`price` and `year`, which have no `FacetSchema` row). It is therefore always at
 least `3`.
+
+`facetsCountMaxAnswerable` excludes those two range questions and is the
+denominator for a listing's completion score (`listings.facetsCount /
+categories.facetsCountMaxAnswerable`).
 
 `GET /categories` also returns a virtual **all** category with `id: 0`,
 `descriptionId: 0`, no audit values, and `facetsCountMax: 3` on a database with

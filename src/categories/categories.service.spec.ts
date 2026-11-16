@@ -2,7 +2,11 @@ import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import type { DescriptionsService } from '../descriptions/descriptions.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
-import { CategoriesService, facetsCountMaxFor } from './categories.service.js';
+import {
+  CategoriesService,
+  facetsCountMaxAnswerableFor,
+  facetsCountMaxFor,
+} from './categories.service.js';
 
 /** `parents` maps every category id to its parent id, or to null for a root. */
 function createService(parents: Record<number, number | null>) {
@@ -50,12 +54,14 @@ describe('facetsCountMaxFor', () => {
 
   it('counts generic facets and the two range questions for the all category', () => {
     expect(facetsCountMaxFor(0, categories, facetSchemas)).toBe(3);
+    expect(facetsCountMaxAnswerableFor(0, categories, facetSchemas)).toBe(1);
   });
 
   it('counts a category facet plus the facets inherited from ancestors', () => {
     // Category 2: generic condition, brand from category 1, its own facet and
     // the price/year range questions.
     expect(facetsCountMaxFor(2, categories, facetSchemas)).toBe(5);
+    expect(facetsCountMaxAnswerableFor(2, categories, facetSchemas)).toBe(3);
   });
 
   it('counts a generic facet once when its category is also an ancestor', () => {
@@ -99,9 +105,8 @@ describe('CategoriesService.findAll', () => {
     const rows = await service.findAll();
 
     expect(rows.map((row) => row.id)).toEqual([0, 1, 2]);
-    expect(rows[0].facetsCountMax).toBe(3);
-    expect(rows[1].facetsCountMax).toBe(3);
-    expect(rows[2].facetsCountMax).toBe(3);
+    expect(rows.map((row) => row.facetsCountMax)).toEqual([3, 3, 3]);
+    expect(rows.map((row) => row.facetsCountMaxAnswerable)).toEqual([1, 1, 1]);
   });
 });
 
