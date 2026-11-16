@@ -177,7 +177,10 @@ Source: `src/listings/listings.controller.ts`, `src/listings/listings.service.ts
 | `isActive` | boolean | no | defaults to `true`; the wizard creates drafts with `false` and Publish sets `true` |
 
 Response: `id`, `categoryId`, `orientation`, `userId`, `isActive`, `createdAt`,
-`updatedAt`, `createdBy`, `updatedBy`.
+`updatedAt`, `createdBy`, `updatedBy`, `facetsCount`.
+
+`facetsCount` is the number of `FacetValueSelection` rows for the listing: how
+many interview questions have an answered value. Brand-new listings return `0`.
 
 ### `/listing-translations` — ListingTranslation
 Source: `src/listing-translations/listing-translations.controller.ts`,
@@ -207,7 +210,19 @@ Source: `src/categories/categories.controller.ts`, `src/categories/categories.se
 | `parentCategoryId` | int \| null | no | FK → `categories.id`; `null`/omitted = root category |
 
 Response: `id`, `descriptionId`, `parentCategoryId`, `createdAt`, `updatedAt`,
-`createdBy`, `updatedBy`.
+`createdBy`, `updatedBy`, `facetsCountMax`.
+
+`facetsCountMax` is the number of interview questions that apply to the
+category: every generic `FacetSchema`, every `FacetSchema` defined on the
+category or one of its ancestors, plus the two numeric range questions
+(`price` and `year`, which have no `FacetSchema` row). It is therefore always at
+least `3`.
+
+`GET /categories` also returns a virtual **all** category with `id: 0`,
+`descriptionId: 0`, no audit values, and `facetsCountMax: 3` on a database with
+the generic condition facet. It groups the questions shared by every category;
+it has no row in the database and cannot be updated or deleted. `GET
+/categories/0` returns the same object.
 
 Notes: deleting a category with child categories sets their `parentCategoryId`
 to `null` (`SetNull`); deleting one still referenced by a listing or facet schema

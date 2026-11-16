@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import type { DescriptionsService } from '../descriptions/descriptions.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
-import { CategoriesService } from './categories.service.js';
+import { CategoriesService, facetsCountMaxFor } from './categories.service.js';
 
 /** `parents` maps every category id to its parent id, or to null for a root. */
 function createService(parents: Record<number, number | null>) {
@@ -11,7 +11,18 @@ function createService(parents: Record<number, number | null>) {
       findUnique: vi.fn(async ({ where }: { where: { id: number } }) =>
         where.id in parents ? { parentCategoryId: parents[where.id] } : null,
       ),
+      findMany: vi.fn(async () =>
+        Object.entries(parents).map(([id, parentCategoryId]) => ({
+          id: Number(id),
+          parentCategoryId,
+        })),
+      ),
       update: vi.fn(async () => ({ id: 1 })),
+    },
+    facetSchema: {
+      findMany: vi.fn(async () => [
+        { id: 1, categoryId: 1, isGeneric: true },
+      ]),
     },
   };
   const descriptions = { assertExists: vi.fn(async () => undefined) };
@@ -22,6 +33,77 @@ function createService(parents: Record<number, number | null>) {
 
   return { service, prisma };
 }
+
+describe('facetsCountMaxFor', () => {
+  const categories = [
+    { id: 1, parentCategoryId: null },
+    { id: 2, parentCategoryId: 1 },
+    { id: 3, parentCategoryId: null },
+    { id: 4, parentCategoryId: null },
+  ];
+  const facetSchemas = [
+    { id: 1, categoryId: 1, isGeneric: true },
+    { id: 2, categoryId: 1, isGeneric: false },
+    { id: 3, categoryId: 2, isGeneric: false },
+    { id: 4, categoryId: 3, isGeneric: false },
+  ];
+
+  it('counts generic facets and the two range questions for the all category', () => {
+    expect(facetsCountMaxFor(0, categories, facetSchemas)).toBe(3);
+  });
+
+  it('counts a category facet plus the facets inherited from ancestors', () => {
+    // Category 2: generic condition, brand from category 1, its own facet and
+    // the price/year range questions.
+    expect(facetsCountMaxFor(2, categories, facetSchemas)).toBe(5);
+  });
+
+  it('counts a generic facet once when its category is also an ancestor', () => {
+    // The generic facet is defined on category 1, which is also in the chain.
+    expect(facetsCountMaxFor(1, categories, facetSchemas)).toBe(4);
+  });
+
+  it('returns the three generic questions for a root category without its own facets', () => {
+    expect(facetsCountMaxFor(4, categories, facetSchemas)).toBe(3);
+  });
+
+  it('keeps the minimum of three when the generic facet has not been seeded', () => {
+    expect(facetsCountMaxFor(4, categories, [])).toBe(3);
+    expect(facetsCountMaxFor(0, categories, [])).toBe(3);
+  });
+
+  it('terminates when the stored category tree contains a cycle', () => {
+    const cyclic = [
+      { id: 5, parentCategoryId: 6 },
+      { id: 6, parentCategoryId: 5 },
+    ];
+    const schemas = [{ id: 7, categoryId: 6, isGeneric: false }];
+
+    expect(facetsCountMaxFor(5, cyclic, schemas)).toBe(3);
+  });
+});
+
+describe('CategoriesService virtual all category', () => {
+  it('can be read but not modified', async () => {
+    const { service } = createService({ 1: null });
+
+    await expect(service.update(0, {})).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.remove(0)).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe('CategoriesService.findAll', () => {
+  it('returns the virtual all category first, followed by stored categories', async () => {
+    const { service } = createService({ 1: null, 2: 1 });
+
+    const rows = await service.findAll();
+
+    expect(rows.map((row) => row.id)).toEqual([0, 1, 2]);
+    expect(rows[0].facetsCountMax).toBe(3);
+    expect(rows[1].facetsCountMax).toBe(3);
+    expect(rows[2].facetsCountMax).toBe(3);
+  });
+});
 
 describe('CategoriesService.update', () => {
   it('rejects a category that is made its own parent', async () => {

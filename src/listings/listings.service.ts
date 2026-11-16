@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { auditSelect } from '../audit/audit-select.js';
 import { CrudService, type CrudDelegate } from '../common/crud.service.js';
@@ -15,21 +15,83 @@ const listingSelect = {
   ...auditSelect,
 } satisfies Prisma.ListingSelect;
 
-export type Listing = Prisma.ListingGetPayload<{
+const listingWithCountSelect = {
+  ...listingSelect,
+  _count: { select: { facetValueSelections: true } },
+} satisfies Prisma.ListingSelect;
+
+export type ListingRow = Prisma.ListingGetPayload<{
   select: typeof listingSelect;
+}>;
+
+export type Listing = ListingRow & {
+  /** Number of interview questions answered for this listing. */
+  facetsCount: number;
+};
+
+type ListingWithCount = Prisma.ListingGetPayload<{
+  select: typeof listingWithCountSelect;
 }>;
 
 @Injectable()
 export class ListingsService extends CrudService<
   CreateListingDto,
   UpdateListingDto,
-  Listing
+  ListingRow
 > {
-  constructor(prisma: PrismaService) {
+  constructor(private readonly prisma: PrismaService) {
     super(
-      prisma.listing as unknown as CrudDelegate<Listing>,
+      prisma.listing as unknown as CrudDelegate<ListingRow>,
       listingSelect,
       'Listing',
     );
+  }
+
+  override async create(
+    dto: CreateListingDto,
+    actorId: number | null = null,
+  ): Promise<Listing> {
+    const row = await super.create(dto, actorId);
+    // A listing that was just created cannot have selections yet.
+    return { ...row, facetsCount: 0 };
+  }
+
+  override async findAll(): Promise<Listing[]> {
+    const rows = await this.prisma.listing.findMany({
+      select: listingWithCountSelect,
+      orderBy: { id: 'asc' },
+    });
+
+    return rows.map((row) => this.withFacetsCount(row));
+  }
+
+  override async findOne(id: number): Promise<Listing> {
+    const row = await this.prisma.listing.findUnique({
+      where: { id },
+      select: listingWithCountSelect,
+    });
+
+    if (!row) {
+      throw new NotFoundException(`Listing ${id} not found`);
+    }
+
+    return this.withFacetsCount(row);
+  }
+
+  override async update(
+    id: number,
+    dto: UpdateListingDto,
+    actorId: number | null = null,
+  ): Promise<Listing> {
+    const row = await super.update(id, dto, actorId);
+    const facetsCount = await this.prisma.facetValueSelection.count({
+      where: { listingId: id },
+    });
+
+    return { ...row, facetsCount };
+  }
+
+  private withFacetsCount({ _count, ...row }: ListingWithCount): Listing {
+    return { ...row, facetsCount: _count.facetValueSelections };
   }
 }
