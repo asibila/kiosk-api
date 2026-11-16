@@ -19,7 +19,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
-import { createReadStream } from 'node:fs';
 import { ActorId } from '../audit/actor-id.decorator.js';
 import {
   updateListingImageSchema,
@@ -96,7 +95,7 @@ export class ListingImagesController {
       'Cache-Control': 'private, max-age=31536000, immutable',
     });
 
-    return new StreamableFile(createReadStream(image.path));
+    return new StreamableFile(image.bytes);
   }
 
   @Patch(':id')

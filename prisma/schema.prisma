@@ -215,9 +215,9 @@ model InboxItem {
   @@index([userId])
 }
 
-/// An image attached to a listing. The binary lives on disk in
-/// `uploads/listing-images/`; `fileName` is the generated storage name (the
-/// original upload name is intentionally not kept).
+/// An image attached to a listing. The compressed bytes live in
+/// `ListingImageData` (PostgreSQL) so they survive redeploys; `fileName` is the
+/// generated logical name and the original upload name is intentionally not kept.
 model ListingImage {
   id           Int     @id @default(autoincrement())
   listingId    Int
@@ -231,9 +231,21 @@ model ListingImage {
   createdBy Int?
   updatedBy Int?
 
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listing Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  data    ListingImageData?
 
   @@index([listingId])
+}
+
+/// The binary content of a listing image. Kept in a separate table so listing
+/// and metadata queries never load the bytes.
+model ListingImageData {
+  listingImageId Int      @id
+  bytes          Bytes
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  listingImage ListingImage @relation(fields: [listingImageId], references: [id], onDelete: Cascade)
 }
 
 /// A facet (filterable attribute) that belongs to a category. `isGeneric`

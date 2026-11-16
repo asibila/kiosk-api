@@ -1,15 +1,16 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { access, mkdir, unlink, writeFile } from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../prisma/prisma.service.js';
-import { ListingImagesService } from './listing-images.service.js';
+import {
+  ListingImagesService,
+  MAX_IMAGE_BYTES,
+} from './listing-images.service.js';
 
-vi.mock('node:fs/promises', () => ({
-  mkdir: vi.fn(),
-  writeFile: vi.fn(),
-  unlink: vi.fn(),
-  access: vi.fn(),
-}));
+/** Smallest valid 1×1 PNG used as upload input. */
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
 
 const prisma = {
   listing: { findUnique: vi.fn() },
@@ -27,8 +28,8 @@ const prisma = {
 const row = {
   id: 1,
   listingId: 25,
-  mimeType: 'image/png',
-  size: 4,
+  mimeType: 'image/webp',
+  size: 96,
   primaryImage: true,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -36,70 +37,59 @@ const row = {
   updatedBy: null,
 };
 
-const image = (mimetype = 'image/png', text = 'png!') => {
-  const buffer = Buffer.from(text);
-  return { mimetype, size: buffer.length, buffer };
-};
+const image = (mimetype = 'image/png', buffer = PNG) => ({
+  mimetype,
+  size: buffer.length,
+  buffer,
+});
 
 describe('ListingImagesService', () => {
   let service: ListingImagesService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(writeFile).mockResolvedValue(undefined);
-    vi.mocked(unlink).mockResolvedValue(undefined);
-    vi.mocked(access).mockResolvedValue(undefined);
     prisma.listingImage.count.mockResolvedValue(0);
     service = new ListingImagesService(prisma as unknown as PrismaService);
   });
 
-  it('creates the uploads directory on module init', async () => {
-    await service.onModuleInit();
-
-    expect(mkdir).toHaveBeenCalledWith(
-      expect.stringContaining('uploads'),
-      { recursive: true },
-    );
-  });
-
   describe('create', () => {
-    it('writes a generated file and stores the metadata', async () => {
+    it('compresses the upload to WebP and stores the bytes in the row', async () => {
       prisma.listing.findUnique.mockResolvedValue({ id: 25 });
       prisma.listingImage.create.mockResolvedValue(row);
 
       const created = await service.create(25, image(), 7);
 
-      expect(created).toMatchObject({
-        id: 1,
-        listingId: 25,
+      expect(created).toEqual({
+        ...row,
         url: '/listing-images/1/file',
       });
 
-      const target = vi.mocked(writeFile).mock.calls[0][0] as string;
-      expect(target).toMatch(/[0-9a-f-]{36}\.png$/);
-      expect(target).toContain('uploads');
-      expect(vi.mocked(writeFile).mock.calls[0][1]).toEqual(
-        Buffer.from('png!'),
-      );
-
-      expect(prisma.listingImage.create).toHaveBeenCalledWith({
-        data: {
-          listingId: 25,
-          fileName: expect.stringMatching(/[0-9a-f-]{36}\.png$/),
-          mimeType: 'image/png',
-          size: 4,
-          primaryImage: true,
-          createdBy: 7,
-        },
-        select: expect.any(Object),
+      const args = prisma.listingImage.create.mock.calls[0][0];
+      expect(args.data).toMatchObject({
+        listingId: 25,
+        mimeType: 'image/webp',
+        size: expect.any(Number),
+        primaryImage: true,
+        createdBy: 7,
       });
+      expect(args.data.fileName).toMatch(/[0-9a-f-]{36}\.webp$/);
+      expect(args.data.size).toBeGreaterThan(0);
+
+      const bytes = args.data.data.create.bytes as Uint8Array;
+      expect(bytes).toBeInstanceOf(Uint8Array);
+      const header = Buffer.from(bytes);
+      expect(header.subarray(0, 4).toString('ascii')).toBe('RIFF');
+      expect(header.subarray(8, 12).toString('ascii')).toBe('WEBP');
+      expect(args.data.size).toBe(bytes.length);
     });
 
     it('does not make later images primary automatically', async () => {
       prisma.listing.findUnique.mockResolvedValue({ id: 25 });
       prisma.listingImage.count.mockResolvedValue(2);
-      prisma.listingImage.create.mockResolvedValue({ ...row, primaryImage: false });
+      prisma.listingImage.create.mockResolvedValue({
+        ...row,
+        primaryImage: false,
+      });
 
       await service.create(25, image(), null);
 
@@ -110,19 +100,40 @@ describe('ListingImagesService', () => {
       );
     });
 
-    it('rejects an unsupported image type without writing anything', async () => {
+    it('rejects an unsupported image type without touching the database', async () => {
       await expect(
         service.create(25, image('image/svg+xml'), null),
       ).rejects.toBeInstanceOf(BadRequestException);
 
-      expect(writeFile).not.toHaveBeenCalled();
       expect(prisma.listingImage.create).not.toHaveBeenCalled();
     });
 
     it('rejects an empty upload', async () => {
       await expect(
-        service.create(25, image('image/png', ''), null),
+        service.create(25, image('image/png', Buffer.alloc(0)), null),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects an oversized upload', async () => {
+      await expect(
+        service.create(
+          25,
+          image('image/png', Buffer.alloc(MAX_IMAGE_BYTES + 1)),
+          null,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(prisma.listingImage.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a file whose bytes are not an image', async () => {
+      prisma.listing.findUnique.mockResolvedValue({ id: 25 });
+
+      await expect(
+        service.create(25, image('image/png', Buffer.from('not an image')), null),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(prisma.listingImage.create).not.toHaveBeenCalled();
     });
 
     it('rejects an unknown listing', async () => {
@@ -131,17 +142,7 @@ describe('ListingImagesService', () => {
       await expect(service.create(404, image(), null)).rejects.toBeInstanceOf(
         NotFoundException,
       );
-      expect(writeFile).not.toHaveBeenCalled();
-    });
-
-    it('removes the written file when the row cannot be stored', async () => {
-      prisma.listing.findUnique.mockResolvedValue({ id: 25 });
-      prisma.listingImage.create.mockRejectedValue(new Error('db down'));
-
-      await expect(service.create(25, image(), null)).rejects.toThrow(
-        'db down',
-      );
-      expect(unlink).toHaveBeenCalled();
+      expect(prisma.listingImage.create).not.toHaveBeenCalled();
     });
   });
 
@@ -193,7 +194,10 @@ describe('ListingImagesService', () => {
 
     it('does not clear siblings when unmarking', async () => {
       prisma.listingImage.findUnique.mockResolvedValue({ listingId: 25 });
-      prisma.listingImage.update.mockResolvedValue({ ...row, primaryImage: false });
+      prisma.listingImage.update.mockResolvedValue({
+        ...row,
+        primaryImage: false,
+      });
 
       await service.setPrimary(1, false, null);
 
@@ -214,19 +218,18 @@ describe('ListingImagesService', () => {
   });
 
   describe('getFile', () => {
-    it('returns the stored path and metadata', async () => {
+    it('returns the stored bytes and their metadata', async () => {
+      const bytes = Buffer.from('webp-bytes');
       prisma.listingImage.findUnique.mockResolvedValue({
-        fileName: 'abc.png',
-        mimeType: 'image/png',
-        size: 4,
+        mimeType: 'image/webp',
+        data: { bytes },
       });
 
       const file = await service.getFile(1);
 
-      expect(file.mimeType).toBe('image/png');
-      expect(file.size).toBe(4);
-      expect(file.path).toMatch(/abc\.png$/);
-      expect(access).toHaveBeenCalledWith(file.path);
+      expect(file.mimeType).toBe('image/webp');
+      expect(file.bytes).toEqual(bytes);
+      expect(file.size).toBe(bytes.length);
     });
 
     it('throws 404 when the row does not exist', async () => {
@@ -237,13 +240,11 @@ describe('ListingImagesService', () => {
       );
     });
 
-    it('throws 404 when the file is missing on disk', async () => {
+    it('throws 404 when the row has no stored bytes', async () => {
       prisma.listingImage.findUnique.mockResolvedValue({
-        fileName: 'gone.png',
-        mimeType: 'image/png',
-        size: 4,
+        mimeType: 'image/webp',
+        data: null,
       });
-      vi.mocked(access).mockRejectedValue(new Error('ENOENT'));
 
       await expect(service.getFile(1)).rejects.toBeInstanceOf(
         NotFoundException,
@@ -252,17 +253,14 @@ describe('ListingImagesService', () => {
   });
 
   describe('remove', () => {
-    it('deletes the row and the stored file', async () => {
-      prisma.listingImage.findUnique.mockResolvedValue({
-        fileName: 'abc.png',
-      });
+    it('deletes the row, cascading to its bytes', async () => {
+      prisma.listingImage.findUnique.mockResolvedValue({ id: 1 });
 
       await service.remove(1);
 
       expect(prisma.listingImage.delete).toHaveBeenCalledWith({
         where: { id: 1 },
       });
-      expect(unlink).toHaveBeenCalledWith(expect.stringMatching(/abc\.png$/));
     });
 
     it('throws 404 when the row does not exist', async () => {

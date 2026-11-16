@@ -2,12 +2,10 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  type OnModuleInit,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
-import { access, mkdir, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
@@ -20,20 +18,42 @@ export interface UploadedImage {
   buffer: Buffer;
 }
 
-/**
- * Accepted image types and the extension used for the stored file. The original
- * upload name is not kept; the stored name is a generated UUID.
- */
-const EXTENSION_BY_MIME: Record<string, string> = {
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/webp': '.webp',
-  'image/gif': '.gif',
-  'image/avif': '.avif',
-};
+/** Accepted upload types. Every image is re-encoded to WebP before storage. */
+const ACCEPTED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+]);
 
 /** Largest accepted image, mirrored by the multer limit in the controller. */
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+/** Longest side kept after resizing; smaller images are not enlarged. */
+const MAX_IMAGE_DIMENSION = 1600;
+const WEBP_QUALITY = 82;
+
+/**
+ * Normalizes an upload to a reasonably sized WebP. Animated GIFs are stored as
+ * their first frame, which is fine for listing photos.
+ */
+async function compressImage(buffer: Buffer): Promise<Buffer> {
+  try {
+    return await sharp(buffer)
+      .rotate() // apply EXIF orientation before stripping metadata
+      .resize({
+        width: MAX_IMAGE_DIMENSION,
+        height: MAX_IMAGE_DIMENSION,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: WEBP_QUALITY })
+      .toBuffer();
+  } catch {
+    throw new BadRequestException('The uploaded file is not a valid image');
+  }
+}
 
 const listingImageSelect = {
   id: true,
@@ -60,18 +80,13 @@ const toDto = (row: ListingImage): ListingImageDto => ({
 });
 
 /**
- * Stores listing images on disk (`uploads/listing-images/`) and keeps only the
- * metadata in the database. There can be zero or more images per listing.
+ * Stores listing images compressed as WebP in PostgreSQL (`ListingImageData`),
+ * so the bytes survive redeploys and every instance sees the same image. There
+ * can be zero or more images per listing.
  */
 @Injectable()
-export class ListingImagesService implements OnModuleInit {
-  private readonly storageDir = join(process.cwd(), 'uploads', 'listing-images');
-
+export class ListingImagesService {
   constructor(private readonly prisma: PrismaService) {}
-
-  async onModuleInit(): Promise<void> {
-    await mkdir(this.storageDir, { recursive: true });
-  }
 
   async findAll(listingId?: number): Promise<ListingImageDto[]> {
     const rows = await this.prisma.listingImage.findMany({
@@ -97,8 +112,7 @@ export class ListingImagesService implements OnModuleInit {
     file: UploadedImage,
     actorId: number | null,
   ): Promise<ListingImageDto> {
-    const extension = EXTENSION_BY_MIME[file.mimetype];
-    if (!extension) {
+    if (!ACCEPTED_IMAGE_TYPES.has(file.mimetype)) {
       throw new BadRequestException(
         'Only JPEG, PNG, WebP, GIF or AVIF images are supported',
       );
@@ -118,33 +132,26 @@ export class ListingImagesService implements OnModuleInit {
     });
     if (!listing) throw new NotFoundException(`Listing ${listingId} not found`);
 
+    const bytes = new Uint8Array(await compressImage(file.buffer));
+
     // The first image of a listing becomes its primary image automatically.
     const existingCount = await this.prisma.listingImage.count({
       where: { listingId },
     });
 
-    const fileName = `${randomUUID()}${extension}`;
-    const target = join(this.storageDir, fileName);
-    await writeFile(target, file.buffer);
-
-    try {
-      const row = await this.prisma.listingImage.create({
-        data: {
-          listingId,
-          fileName,
-          mimeType: file.mimetype,
-          size: file.buffer.length,
-          primaryImage: existingCount === 0,
-          ...(actorId === null ? {} : { createdBy: actorId }),
-        },
-        select: listingImageSelect,
-      });
-      return toDto(row);
-    } catch (error) {
-      // Never leave an orphan file behind when the row cannot be written.
-      await unlink(target).catch(() => undefined);
-      throw error;
-    }
+    const row = await this.prisma.listingImage.create({
+      data: {
+        listingId,
+        fileName: `${randomUUID()}.webp`,
+        mimeType: 'image/webp',
+        size: bytes.length,
+        primaryImage: existingCount === 0,
+        ...(actorId === null ? {} : { createdBy: actorId }),
+        data: { create: { bytes } },
+      },
+      select: listingImageSelect,
+    });
+    return toDto(row);
   }
 
   /**
@@ -180,38 +187,38 @@ export class ListingImagesService implements OnModuleInit {
     return toDto(updated);
   }
 
-  /** Resolves the stored file for the streaming endpoint. */
+  /** Resolves the stored bytes for the binary endpoint. */
   async getFile(id: number): Promise<{
-    path: string;
+    bytes: Buffer;
     mimeType: string;
     size: number;
   }> {
     const row = await this.prisma.listingImage.findUnique({
       where: { id },
-      select: { fileName: true, mimeType: true, size: true },
+      select: {
+        mimeType: true,
+        data: { select: { bytes: true } },
+      },
     });
     if (!row) throw new NotFoundException(`ListingImage ${id} not found`);
-
-    const path = join(this.storageDir, row.fileName);
-    try {
-      await access(path);
-    } catch {
+    if (!row.data) {
       throw new NotFoundException(
-        `Image file for ListingImage ${id} is missing on disk`,
+        `Image data for ListingImage ${id} has not been migrated`,
       );
     }
 
-    return { path, mimeType: row.mimeType, size: row.size };
+    const bytes = Buffer.from(row.data.bytes);
+    return { bytes, mimeType: row.mimeType, size: bytes.length };
   }
 
   async remove(id: number): Promise<void> {
     const row = await this.prisma.listingImage.findUnique({
       where: { id },
-      select: { fileName: true },
+      select: { id: true },
     });
     if (!row) throw new NotFoundException(`ListingImage ${id} not found`);
 
+    // ListingImageData cascades with the row.
     await this.prisma.listingImage.delete({ where: { id } });
-    await unlink(join(this.storageDir, row.fileName)).catch(() => undefined);
   }
 }

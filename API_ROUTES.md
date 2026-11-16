@@ -74,12 +74,12 @@ AI agents and humans integrating with the API.
 | `GET` | `/inbox-items/:id` | – | `200` inbox item | `404` if missing |
 | `PATCH` | `/inbox-items/:id` | `UpdateInboxItemDto` | `200` inbox item | |
 | `DELETE` | `/inbox-items/:id` | – | `204` empty | `404` if missing |
-| `POST` | `/listing-images` | multipart `file` + `listingId` | `201` image metadata | binary saved to `uploads/listing-images/` |
+| `POST` | `/listing-images` | multipart `file` + `listingId` | `201` image metadata | bytes compressed to WebP and stored in PostgreSQL |
 | `GET` | `/listing-images` | optional `?listingId=` | `200` image metadata[] | ordered by `id` |
 | `GET` | `/listing-images/:id` | – | `200` image metadata | `404` if missing |
 | `GET` | `/listing-images/:id/file` | – | `200` image bytes | stored `Content-Type`, long-lived cache |
 | `PATCH` | `/listing-images/:id` | `{ primaryImage }` | `200` image metadata | marks primary; clears siblings |
-| `DELETE` | `/listing-images/:id` | – | `204` empty | deletes the row and the file |
+| `DELETE` | `/listing-images/:id` | - | `204` empty | deletes the row and its stored bytes |
 | `POST` | `/facet-schemas` | `CreateFacetSchemaDto` | `201` facet schema | `name` is unique |
 | `GET` | `/facet-schemas` | – | `200` facet schema[] | ordered by `id` |
 | `GET` | `/facet-schemas/:id` | – | `200` facet schema | `404` if missing |
@@ -376,10 +376,12 @@ Messages dialog inbox row. `PATCH /inbox-items/:id` accepts `hasUnread`
 Source: `src/listing-images/listing-images.controller.ts`,
 `src/listing-images/listing-images.service.ts`
 
-A listing can have zero or more images. The binary is stored on disk in
-`uploads/listing-images/` (relative to the backend working directory); the
-database only keeps metadata. The original upload file name is **not** stored —
-the file is saved under a generated UUID name.
+A listing can have zero or more images. Every upload is re-encoded to WebP
+(max 1600 px on the longest side, quality 82, EXIF rotation applied) and the
+bytes are stored in PostgreSQL in the `ListingImageData` table, keyed by the
+`ListingImage` row. Keeping the bytes in a separate table means metadata and
+listing queries never load them, and they survive redeploys. The original upload
+file name is **not** stored — `fileName` is a generated logical UUID name.
 
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
@@ -395,8 +397,8 @@ The first image uploaded for a listing becomes its primary image
 (`primaryImage: true`) automatically. `PATCH /listing-images/:id` with
 `{ "primaryImage": true }` promotes that image and clears the flag on its
 siblings, so a listing has at most one primary image. Lists are returned with
-the primary image first. Deleting a listing cascades its image rows (the files
-are removed by the delete endpoint, not the cascade).
+the primary image first. Deleting a listing cascades its image rows, and
+`ListingImageData` cascades with them.
 
 ```bash
 curl -X POST http://localhost:3000/listing-images \

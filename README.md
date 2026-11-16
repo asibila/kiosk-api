@@ -206,15 +206,16 @@ then count. Range chips are accepted but ignored until numeric facets exist. The
 Vite frontend calls this as `/api/suggest`.
 
 Listing images are not plain CRUD rows: `POST /listing-images` accepts a
-multipart upload (`file` + `listingId`), stores the binary under
-`uploads/listing-images/` with a generated file name, and keeps only metadata
-(`listingId`, `mimeType`, `size`, `primaryImage`) in the `ListingImage` table.
-The first image is primary automatically; `PATCH /listing-images/:id` with
-`{ "primaryImage": true }` promotes another image (clearing the siblings).
-Fetch bytes with `GET /listing-images/:id/file`;
-`GET /listing-images?listingId=<id>` lists a listing's images (primary first)
-and `DELETE /listing-images/:id` removes the row and the file. JPEG, PNG, WebP,
-GIF and AVIF are accepted up to 10 MB.
+multipart upload (`file` + `listingId`), re-encodes it to WebP (max 1600 px,
+quality 82), and stores the bytes in PostgreSQL in the `ListingImageData` table.
+`ListingImage` keeps the metadata (`listingId`, `fileName`, `mimeType`, `size`,
+`primaryImage`), so redeploys never lose images. The first image is primary
+automatically; `PATCH /listing-images/:id` with `{ "primaryImage": true }`
+promotes another image (clearing the siblings). Fetch bytes with
+`GET /listing-images/:id/file`; `GET /listing-images?listingId=<id>` lists a
+listing's images (primary first) and `DELETE /listing-images/:id` removes the
+row and its stored bytes. JPEG, PNG, WebP, GIF and AVIF are accepted up to
+10 MB; animated GIFs keep their first frame.
 
 A duplicate unique value returns `409`, a reference to a row that does not
 exist returns `400`, and an unknown `:id` returns `404`.
