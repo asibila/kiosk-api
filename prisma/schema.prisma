@@ -81,7 +81,24 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  sessions Session[]
+
   @@index([name])
+}
+
+/// A signed-in browser session. `id` is the SHA-256 of the cookie token, so a
+/// leaked database row cannot be replayed as a cookie.
+model Session {
+  id        String   @id
+  userId    Int
+  expiresAt DateTime
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 /// A listing filed under a category.

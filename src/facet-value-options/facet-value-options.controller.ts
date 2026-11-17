@@ -11,6 +11,8 @@ import {
   Post,
 } from '@nestjs/common';
 import { ActorId } from '../audit/actor-id.decorator.js';
+import { Public } from '../auth/public.decorator.js';
+import { Roles } from '../auth/roles.decorator.js';
 import {
   createFacetValueOptionSchema,
   type CreateFacetValueOptionDto,
@@ -30,6 +32,7 @@ export class FacetValueOptionsController {
     private readonly facetValueOptionsService: FacetValueOptionsService,
   ) {}
 
+  @Roles('ADMIN')
   @Post()
   create(
     @Body({ schema: createFacetValueOptionSchema })
@@ -39,16 +42,19 @@ export class FacetValueOptionsController {
     return this.facetValueOptionsService.create(dto, actorId);
   }
 
+  @Public()
   @Get()
   findAll(): Promise<FacetValueOption[]> {
     return this.facetValueOptionsService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<FacetValueOption> {
     return this.facetValueOptionsService.findOne(id);
   }
 
+  @Roles('ADMIN')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -59,6 +65,7 @@ export class FacetValueOptionsController {
     return this.facetValueOptionsService.update(id, dto, actorId);
   }
 
+  @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {

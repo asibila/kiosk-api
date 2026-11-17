@@ -10,7 +10,8 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ActorId } from '../audit/actor-id.decorator.js';
+import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
+import { Public } from '../auth/public.decorator.js';
 import {
   createFacetValueSelectionSchema,
   type CreateFacetValueSelectionDto,
@@ -34,16 +35,18 @@ export class FacetValueSelectionsController {
   create(
     @Body({ schema: createFacetValueSelectionSchema })
     dto: CreateFacetValueSelectionDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<FacetValueSelection> {
-    return this.facetValueSelectionsService.create(dto, actorId);
+    return this.facetValueSelectionsService.create(dto, user);
   }
 
+  @Public()
   @Get()
   findAll(): Promise<FacetValueSelection[]> {
     return this.facetValueSelectionsService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<FacetValueSelection> {
     return this.facetValueSelectionsService.findOne(id);
@@ -54,14 +57,17 @@ export class FacetValueSelectionsController {
     @Param('id', ParseIntPipe) id: number,
     @Body({ schema: updateFacetValueSelectionSchema })
     dto: UpdateFacetValueSelectionDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<FacetValueSelection> {
-    return this.facetValueSelectionsService.update(id, dto, actorId);
+    return this.facetValueSelectionsService.update(id, dto, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.facetValueSelectionsService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    return this.facetValueSelectionsService.remove(id, user);
   }
 }

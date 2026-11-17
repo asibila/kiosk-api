@@ -6,6 +6,8 @@ import {
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
+import type { RequestUser } from '../auth/current-user.decorator.js';
+import { AccessService } from '../common/access.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
@@ -86,7 +88,10 @@ const toDto = (row: ListingImage): ListingImageDto => ({
  */
 @Injectable()
 export class ListingImagesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
   async findAll(listingId?: number): Promise<ListingImageDto[]> {
     const rows = await this.prisma.listingImage.findMany({
@@ -110,8 +115,10 @@ export class ListingImagesService {
   async create(
     listingId: number,
     file: UploadedImage,
-    actorId: number | null,
+    user: RequestUser,
   ): Promise<ListingImageDto> {
+    await this.access.assertListingOwner(listingId, user);
+
     if (!ACCEPTED_IMAGE_TYPES.has(file.mimetype)) {
       throw new BadRequestException(
         'Only JPEG, PNG, WebP, GIF or AVIF images are supported',
@@ -146,7 +153,7 @@ export class ListingImagesService {
         mimeType: 'image/webp',
         size: bytes.length,
         primaryImage: existingCount === 0,
-        ...(actorId === null ? {} : { createdBy: actorId }),
+        createdBy: user.id,
         data: { create: { bytes } },
       },
       select: listingImageSelect,
@@ -161,13 +168,14 @@ export class ListingImagesService {
   async setPrimary(
     id: number,
     primaryImage: boolean,
-    actorId: number | null,
+    user: RequestUser,
   ): Promise<ListingImageDto> {
     const row = await this.prisma.listingImage.findUnique({
       where: { id },
       select: { listingId: true },
     });
     if (!row) throw new NotFoundException(`ListingImage ${id} not found`);
+    await this.access.assertListingOwner(row.listingId, user);
 
     if (primaryImage) {
       await this.prisma.listingImage.updateMany({
@@ -180,7 +188,7 @@ export class ListingImagesService {
       where: { id },
       data: {
         primaryImage,
-        ...(actorId === null ? {} : { updatedBy: actorId }),
+        updatedBy: user.id,
       },
       select: listingImageSelect,
     });
@@ -211,12 +219,13 @@ export class ListingImagesService {
     return { bytes, mimeType: row.mimeType, size: bytes.length };
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, user: RequestUser): Promise<void> {
     const row = await this.prisma.listingImage.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, listingId: true },
     });
     if (!row) throw new NotFoundException(`ListingImage ${id} not found`);
+    await this.access.assertListingOwner(row.listingId, user);
 
     // ListingImageData cascades with the row.
     await this.prisma.listingImage.delete({ where: { id } });

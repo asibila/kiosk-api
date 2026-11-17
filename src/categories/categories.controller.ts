@@ -11,6 +11,8 @@ import {
   Post,
 } from '@nestjs/common';
 import { ActorId } from '../audit/actor-id.decorator.js';
+import { Public } from '../auth/public.decorator.js';
+import { Roles } from '../auth/roles.decorator.js';
 import {
   createCategorySchema,
   type CreateCategoryDto,
@@ -25,6 +27,7 @@ import { CategoriesService, type Category } from './categories.service.js';
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
+  @Roles('ADMIN')
   @Post()
   create(
     @Body({ schema: createCategorySchema }) dto: CreateCategoryDto,
@@ -33,16 +36,19 @@ export class CategoriesController {
     return this.categoriesService.create(dto, actorId);
   }
 
+  @Public()
   @Get()
   findAll(): Promise<Category[]> {
     return this.categoriesService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Category> {
     return this.categoriesService.findOne(id);
   }
 
+  @Roles('ADMIN')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -52,6 +58,7 @@ export class CategoriesController {
     return this.categoriesService.update(id, dto, actorId);
   }
 
+  @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {

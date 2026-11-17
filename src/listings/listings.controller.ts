@@ -10,7 +10,8 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ActorId } from '../audit/actor-id.decorator.js';
+import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
+import { Public } from '../auth/public.decorator.js';
 import {
   createListingSchema,
   type CreateListingDto,
@@ -28,33 +29,41 @@ export class ListingsController {
   @Post()
   create(
     @Body({ schema: createListingSchema }) dto: CreateListingDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<Listing> {
-    return this.listingsService.create(dto, actorId);
+    return this.listingsService.create(dto, user);
   }
 
+  @Public()
   @Get()
-  findAll(): Promise<Listing[]> {
-    return this.listingsService.findAll();
+  findAll(@CurrentUser() user: RequestUser | null): Promise<Listing[]> {
+    return this.listingsService.findAll(user);
   }
 
+  @Public()
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<Listing> {
-    return this.listingsService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser | null,
+  ): Promise<Listing> {
+    return this.listingsService.findOne(id, user);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body({ schema: updateListingSchema }) dto: UpdateListingDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<Listing> {
-    return this.listingsService.update(id, dto, actorId);
+    return this.listingsService.update(id, dto, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.listingsService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    return this.listingsService.remove(id, user);
   }
 }

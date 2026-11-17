@@ -1,9 +1,11 @@
 import { Module, StandardSchemaValidationPipe } from '@nestjs/common';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { AuthGuard } from './auth/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AccessModule } from './common/access.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { ChatEventsModule } from './chat-events/chat-events.module.js';
 import { ChatMessagesModule } from './chat-messages/chat-messages.module.js';
@@ -27,6 +29,7 @@ import { UsersModule } from './users/users.module.js';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    AccessModule,
     ChatEventsModule,
     UsersModule,
     AuthModule,
@@ -49,6 +52,9 @@ import { UsersModule } from './users/users.module.js';
   controllers: [AppController],
   providers: [
     AppService,
+    // Resolves the session cookie into `request.user` and enforces `@Public` /
+    // `@Roles`. Registered first so every controller sees the authenticated user.
+    { provide: APP_GUARD, useClass: AuthGuard },
     // Validates parameters annotated with `{ schema }`, such as
     // `@Body({ schema: createUserSchema })`.
     { provide: APP_PIPE, useClass: StandardSchemaValidationPipe },

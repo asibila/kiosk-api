@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module.js';
 
 // The deployed frontend is a separate origin from the API, so the browser needs
@@ -22,11 +23,38 @@ async function bootstrap() {
 
   app.enableCors({
     origin: frontendOrigins.length ? frontendOrigins : DEFAULT_FRONTEND_ORIGINS,
+    credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    // `x-actor-id` is the app's actor header; content-type is needed for JSON
-    // writes and multipart image uploads.
+    // `x-actor-id` is kept for old cached bundles; the API now uses the session.
     allowedHeaders: ['content-type', 'x-actor-id'],
   });
+
+  // Cookie-authenticated writes get a second line of defence against CSRF:
+  // browsers send an Origin header, and only the configured frontends may post.
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      next();
+      return;
+    }
+
+    const origin = request.headers.origin;
+    if (!origin) {
+      next();
+      return;
+    }
+
+    const allowed = new Set(
+      frontendOrigins.length ? frontendOrigins : DEFAULT_FRONTEND_ORIGINS,
+    );
+    const self = `${request.protocol}://${request.get('host')}`;
+    if (allowed.has(origin) || origin === self) {
+      next();
+      return;
+    }
+
+    response.status(403).json({ message: 'Origin not allowed' });
+  });
+
   app.enableShutdownHooks();
 
   await app.listen(process.env.PORT ?? 3000);

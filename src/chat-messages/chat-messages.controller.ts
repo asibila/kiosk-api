@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,8 +10,9 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
-import { ActorId } from '../audit/actor-id.decorator.js';
+import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
 import {
   createChatMessageSchema,
   type CreateChatMessageDto,
@@ -19,10 +21,7 @@ import {
   updateChatMessageSchema,
   type UpdateChatMessageDto,
 } from './dto/update-chat-message.dto.js';
-import {
-  ChatMessagesService,
-  type ChatMessage,
-} from './chat-messages.service.js';
+import { ChatMessagesService, type ChatMessage } from './chat-messages.service.js';
 
 @Controller('chat-messages')
 export class ChatMessagesController {
@@ -31,33 +30,50 @@ export class ChatMessagesController {
   @Post()
   create(
     @Body({ schema: createChatMessageSchema }) dto: CreateChatMessageDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<ChatMessage> {
-    return this.chatMessagesService.create(dto, actorId);
+    return this.chatMessagesService.create(dto, user);
   }
 
   @Get()
-  findAll(): Promise<ChatMessage[]> {
-    return this.chatMessagesService.findAll();
+  findAll(
+    @CurrentUser() user: RequestUser,
+    @Query('threadId') threadId?: string,
+  ): Promise<ChatMessage[]> {
+    if (threadId === undefined) {
+      return this.chatMessagesService.findAll(user);
+    }
+
+    const parsed = Number(threadId);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException('threadId must be a positive integer');
+    }
+    return this.chatMessagesService.findAll(user, parsed);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<ChatMessage> {
-    return this.chatMessagesService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<ChatMessage> {
+    return this.chatMessagesService.findOne(id, user);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body({ schema: updateChatMessageSchema }) dto: UpdateChatMessageDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<ChatMessage> {
-    return this.chatMessagesService.update(id, dto, actorId);
+    return this.chatMessagesService.update(id, dto, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.chatMessagesService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    return this.chatMessagesService.remove(id, user);
   }
 }

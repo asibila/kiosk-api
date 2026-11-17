@@ -1,4 +1,5 @@
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { Public } from '../auth/public.decorator.js';
 import {
   parseChips,
   SuggestionsService,
@@ -9,6 +10,7 @@ import {
 export class SuggestionsController {
   constructor(private readonly suggestionsService: SuggestionsService) {}
 
+  @Public()
   @Get()
   async suggest(
     @Query('q') q = '',

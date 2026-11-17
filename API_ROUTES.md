@@ -12,11 +12,11 @@ AI agents and humans integrating with the API.
 | Framework | NestJS 12, Express adapter, ESM |
 | Database | PostgreSQL via Prisma 6 (`prisma/schema.prisma`, `DATABASE_URL` in `.env`) |
 | Content type | `application/json` for request bodies |
-| Auth | Login exists: `POST /auth/login` validates email + password and returns `{ userId }`. No auth guards on the other routes yet — everything else stays public. |
+| Auth | `POST /auth/login` validates email + password, creates a server-side session and sets an HTTP-only `kiosk_session` cookie. `AuthGuard` resolves it on every request; guests may only use `@Public()` routes. |
 | Validation | Global `StandardSchemaValidationPipe`; Zod schemas attached per body with `@Body({ schema })` |
 | Transform | Validation pipes transform input (`.trim()`, email `.toLowerCase()`), so stored/returned values are transformed |
 | Pagination / filtering | **None.** `GET /<resource>` returns every row, ordered by `id` ascending |
-| Audit header | Optional `x-actor-id: <positive integer>`; fills `createdBy` / `updatedBy` |
+| Audit actor | Derived from the session (`createdBy` / `updatedBy`); the client cannot choose it |
 | Timestamps | `createdAt` / `updatedAt` are ISO 8601 strings, maintained by Prisma |
 
 ## Route table
@@ -25,17 +25,19 @@ AI agents and humans integrating with the API.
 
 | Method | Path | Request body | Success | Notes |
 | --- | --- | --- | --- | --- |
-| `POST` | `/auth/login` | `CreateLoginDto` | `200` `{ userId }` | `{ email, password }`; `401` invalid credentials or deactivated user |
-| `POST` | `/users` | `CreateUserDto` | `201` user | password is hashed; never returned |
-| `GET` | `/users` | – | `200` user[] | ordered by `id` |
-| `GET` | `/users/:id` | – | `200` user | `404` if missing |
-| `PATCH` | `/users/:id` | `UpdateUserDto` | `200` user | any subset of fields; `password` re-hashed |
-| `DELETE` | `/users/:id` | – | `204` empty | `404` if missing |
-| `POST` | `/listings` | `CreateListingDto` | `201` listing | `isActive` defaults to `true`; drafts pass `false`; `regionId` defaults to `0` (all regions) |
-| `GET` | `/listings` | - | `200` listing[] | ordered by `id` |
-| `GET` | `/listings/:id` | - | `200` listing | `404` if missing |
-| `PATCH` | `/listings/:id` | `UpdateListingDto` | `200` listing | |
-| `DELETE` | `/listings/:id` | - | `204` empty | `404` if missing |
+| `POST` | `/auth/login` | `CreateLoginDto` | `200` user + `Set-Cookie` | `{ email, password }`; `401` invalid credentials or deactivated user |
+| `GET` | `/auth/me` | – | `200` user \| empty | public: `null` body when there is no session |
+| `POST` | `/auth/logout` | – | `204` empty | revokes the session row and clears the cookie |
+| `POST` | `/users` | `CreateUserDto` | `201` user | public registration: `role` is forced to `USER`, `isActive` to `true` |
+| `GET` | `/users` | – | `200` user[] | `id`+`name` for guests/users; full rows for an admin |
+| `GET` | `/users/:id` | – | `200` user | self/admin get the full row; others get `id`+`name` |
+| `PATCH` | `/users/:id` | `UpdateUserDto` | `200` user | self: name/password only; admin: any field; `403` otherwise |
+| `DELETE` | `/users/:id` | – | `204` empty | admin only |
+| `POST` | `/listings` | `CreateListingDto` | `201` listing | owner comes from the session (`userId` in the body is ignored); drafts pass `isActive: false` |
+| `GET` | `/listings` | - | `200` listing[] | public: active rows + the caller's own drafts |
+| `GET` | `/listings/:id` | - | `200` listing | `404` for another user's draft |
+| `PATCH` | `/listings/:id` | `UpdateListingDto` | `200` listing | owner or admin only |
+| `DELETE` | `/listings/:id` | - | `204` empty | owner or admin only |
 | `GET` | `/regions` | - | `200` region[] | ordered by `id`; id `0` is "All regions" |
 | `GET` | `/regions/detect` | - | `200` `{ regionId, countryCode }` | from the request IP; `regionId: 0` when unknown |
 | `POST` | `/listing-translations` | `UpsertListingTranslationDto` | `201` translation | upserts on `(listingId, language)` |
@@ -97,6 +99,32 @@ AI agents and humans integrating with the API.
 | `PATCH` | `/facet-value-selections/:id` | `UpdateFacetValueSelectionDto` | `200` selection | |
 | `DELETE` | `/facet-value-selections/:id` | – | `204` empty | `404` if missing |
 
+## Security model
+
+- **Session cookie**: `POST /auth/login` creates a `Session` row keyed by the
+  SHA-256 of a random token and sets `kiosk_session` (`HttpOnly`, `Secure` in
+  production, `SameSite` from `SESSION_COOKIE_SAMESITE`: `none` by default in
+  production for the cross-origin static frontend, `lax` in local dev).
+- **Global guard**: every route requires a session unless it is decorated with
+  `@Public()`. `@Roles('ADMIN')` protects catalog writes (users admin actions,
+  categories, descriptions, facet schemas/options).
+- **Public routes**: `GET /`, `/auth/login`, `/auth/me`, `/listings` (active
+  rows), `/listing-translations`, `/listing-images` (including `/file`),
+  `/categories`, `/descriptions`, `/languages`, `/regions`,
+  `/facet-schemas`, `/facet-value-options`, `/facet-value-selections`,
+  `/suggest`, and `POST /users` (registration; role forced to `USER`).
+- **Ownership**: listing writes, translations, images and facet selections are
+  limited to the listing owner (admins bypass). Drafts are only visible to their
+  owner and return `404` to everyone else.
+- **Chat privacy**: threads, messages, inbox rows and listing links are limited
+  to participants (thread creator, listing owner, or inbox user). `chat-messages`
+  and `chat-events` ignore any client-provided `userId`; the SSE stream forwards
+  only events for the caller's threads.
+- **CSRF**: cookie-authenticated writes also require an allowed `Origin`; CORS
+  is restricted to `FRONTEND_ORIGINS` and `credentials: true`.
+- **Environment**: `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS` (7 by default),
+  `SESSION_COOKIE_SAMESITE` (`none`/`lax`/`strict`), `FRONTEND_ORIGINS`.
+
 ## Conventions
 
 ### Path parameters
@@ -129,15 +157,14 @@ Zod issues are flattened into a string array:
 | Invalid body / empty update | `400` | Zod issue list |
 | Non-integer `:id` | `400` | ParseIntPipe message |
 
-### Audit columns and `x-actor-id`
+### Audit columns
 - Every entity except `User` has `createdAt`, `updatedAt`, `createdBy`, `updatedBy`.
-- `POST` and `PATCH` accept optional header `x-actor-id`. It must be a positive
-  integer string; missing/invalid values become `null` (no error).
-- Present header → `createdBy` (create) or `updatedBy` (update) is set to that
-  integer. Absent/invalid → `null`.
+- The actor comes from the **session cookie** (`@ActorId()` reads `request.user`);
+  the client cannot choose it. Guest writes never reach a handler because every
+  write route requires a session.
 - `createdBy` / `updatedBy` are plain integers, **not** foreign keys, so audit
   data survives user deletion.
-- `GET` and `DELETE` ignore the header (delete does not record who deleted).
+- `x-actor-id` is no longer read; an old client sending it has no effect.
 
 ## Resource schemas
 
@@ -474,7 +501,7 @@ the primary image first. Deleting a listing cascades its image rows, and
 
 ```bash
 curl -X POST http://localhost:3000/listing-images \
-  -H 'x-actor-id: 1' \
+  -b session-cookies.txt \
   -F 'listingId=25' \
   -F 'file=@photo.jpg;type=image/jpeg'
 ```
@@ -595,12 +622,12 @@ curl -X POST $BASE/descriptions \
 
 curl -X POST $BASE/categories \
   -H 'content-type: application/json' \
-  -H 'x-actor-id: 1' \
+  -b session-cookies.txt \
   -d '{"descriptionId":1}'
 
 curl -X POST $BASE/facet-schemas \
   -H 'content-type: application/json' \
-  -H 'x-actor-id: 1' \
+  -b session-cookies.txt \
   -d '{"descriptionId":1,"name":"color","categoryId":1}'
 
 # Create a user (password is required, response never contains the hash)
@@ -619,7 +646,7 @@ curl $BASE/users
 # Update a subset of fields (empty body {} is a 400)
 curl -X PATCH $BASE/users/1 \
   -H 'content-type: application/json' \
-  -H 'x-actor-id: 1' \
+  -b session-cookies.txt \
   -d '{"isActive":false}'
 
 # Delete
@@ -649,5 +676,7 @@ curl -X DELETE $BASE/categories/1 -i
 | facet-value-selections | `src/facet-value-selections/facet-value-selections.controller.ts` | `src/facet-value-selections/facet-value-selections.service.ts` | `FacetValueSelection` |
 
 Shared code: `src/common/crud.service.ts` (generic CRUD + error mapping),
-`src/audit/actor-id.decorator.ts` (`x-actor-id`), `src/audit/audit-select.ts`
-(audit columns), `src/prisma/prisma.service.ts` (Prisma client).
+`src/common/access.service.ts` (listing/thread ownership), `src/auth/auth.guard.ts`
+(session guard), `src/audit/actor-id.decorator.ts` (session actor),
+`src/audit/audit-select.ts` (audit columns), `src/prisma/prisma.service.ts`
+(Prisma client).

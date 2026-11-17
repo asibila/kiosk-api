@@ -10,7 +10,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ActorId } from '../audit/actor-id.decorator.js';
+import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
 import {
   createInboxItemSchema,
   type CreateInboxItemDto,
@@ -28,33 +28,39 @@ export class InboxItemsController {
   @Post()
   create(
     @Body({ schema: createInboxItemSchema }) dto: CreateInboxItemDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<InboxItem> {
-    return this.inboxItemsService.create(dto, actorId);
+    return this.inboxItemsService.create(dto, user);
   }
 
   @Get()
-  findAll(): Promise<InboxItem[]> {
-    return this.inboxItemsService.findAll();
+  findAll(@CurrentUser() user: RequestUser): Promise<InboxItem[]> {
+    return this.inboxItemsService.findAll(user);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<InboxItem> {
-    return this.inboxItemsService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<InboxItem> {
+    return this.inboxItemsService.findOne(id, user);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body({ schema: updateInboxItemSchema }) dto: UpdateInboxItemDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<InboxItem> {
-    return this.inboxItemsService.update(id, dto, actorId);
+    return this.inboxItemsService.update(id, dto, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.inboxItemsService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    return this.inboxItemsService.remove(id, user);
   }
 }

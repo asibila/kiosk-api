@@ -6,7 +6,8 @@ export const createListingSchema = z.object({
   /** Region the listing belongs to; 0 is the global "All regions" row. */
   regionId: z.number().int().min(0).optional(),
   orientation: z.enum(Orientation),
-  userId: z.number().int().positive(),
+  /** Ignored: the owner is the signed-in user. */
+  userId: z.number().int().positive().optional(),
   isActive: z.boolean().optional(),
   price: z.number().finite().nonnegative().nullable().optional(),
   year: z.number().int().min(0).max(9999).nullable().optional(),

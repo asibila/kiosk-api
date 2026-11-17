@@ -1,4 +1,5 @@
 import { Controller, Get, Param } from '@nestjs/common';
+import { Public } from '../auth/public.decorator.js';
 import { LanguagesService, type Language } from './languages.service.js';
 
 /**
@@ -6,6 +7,7 @@ import { LanguagesService, type Language } from './languages.service.js';
  * exposed read-only because adding one also requires translating every
  * description.
  */
+@Public()
 @Controller('languages')
 export class LanguagesController {
   constructor(private readonly languagesService: LanguagesService) {}

@@ -11,7 +11,8 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ActorId } from '../audit/actor-id.decorator.js';
+import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
+import { Public } from '../auth/public.decorator.js';
 import {
   upsertListingTranslationSchema,
   type UpsertListingTranslationDto,
@@ -32,11 +33,12 @@ export class ListingTranslationsController {
   upsert(
     @Body({ schema: upsertListingTranslationSchema })
     dto: UpsertListingTranslationDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<ListingTranslation> {
-    return this.listingTranslationsService.upsert(dto, actorId);
+    return this.listingTranslationsService.upsert(dto, user);
   }
 
+  @Public()
   @Get()
   findAll(@Query('listingId') listingId?: string): Promise<ListingTranslation[]> {
     if (listingId === undefined) {
@@ -50,6 +52,7 @@ export class ListingTranslationsController {
     return this.listingTranslationsService.findAll(id);
   }
 
+  @Public()
   @Get(':listingId/:language')
   findOne(
     @Param('listingId', ParseIntPipe) listingId: number,
@@ -63,7 +66,8 @@ export class ListingTranslationsController {
   remove(
     @Param('listingId', ParseIntPipe) listingId: number,
     @Param('language') language: string,
+    @CurrentUser() user: RequestUser,
   ): Promise<void> {
-    return this.listingTranslationsService.remove(listingId, language);
+    return this.listingTranslationsService.remove(listingId, language, user);
   }
 }

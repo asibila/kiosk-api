@@ -1,16 +1,5 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-} from '@nestjs/common';
-import { ActorId } from '../audit/actor-id.decorator.js';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
 import {
   createChatThreadSchema,
   type CreateChatThreadDto,
@@ -28,33 +17,39 @@ export class ChatThreadsController {
   @Post()
   create(
     @Body({ schema: createChatThreadSchema }) dto: CreateChatThreadDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<ChatThread> {
-    return this.chatThreadsService.create(dto, actorId);
+    return this.chatThreadsService.create(dto, user);
   }
 
   @Get()
-  findAll(): Promise<ChatThread[]> {
-    return this.chatThreadsService.findAll();
+  findAll(@CurrentUser() user: RequestUser): Promise<ChatThread[]> {
+    return this.chatThreadsService.findAll(user);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<ChatThread> {
-    return this.chatThreadsService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<ChatThread> {
+    return this.chatThreadsService.findOne(id, user);
   }
 
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body({ schema: updateChatThreadSchema }) dto: UpdateChatThreadDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<ChatThread> {
-    return this.chatThreadsService.update(id, dto, actorId);
+    return this.chatThreadsService.update(id, dto, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.chatThreadsService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    return this.chatThreadsService.remove(id, user);
   }
 }

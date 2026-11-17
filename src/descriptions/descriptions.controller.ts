@@ -11,6 +11,8 @@ import {
   Post,
 } from '@nestjs/common';
 import { ActorId } from '../audit/actor-id.decorator.js';
+import { Public } from '../auth/public.decorator.js';
+import { Roles } from '../auth/roles.decorator.js';
 import {
   createDescriptionSchema,
   type CreateDescriptionDto,
@@ -28,6 +30,7 @@ import {
 export class DescriptionsController {
   constructor(private readonly descriptionsService: DescriptionsService) {}
 
+  @Roles('ADMIN')
   @Post()
   create(
     @Body({ schema: createDescriptionSchema }) dto: CreateDescriptionDto,
@@ -36,16 +39,19 @@ export class DescriptionsController {
     return this.descriptionsService.create(dto, actorId);
   }
 
+  @Public()
   @Get()
   findAll(): Promise<Description[]> {
     return this.descriptionsService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Description> {
     return this.descriptionsService.findOne(id);
   }
 
+  @Roles('ADMIN')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -55,6 +61,7 @@ export class DescriptionsController {
     return this.descriptionsService.update(id, dto, actorId);
   }
 
+  @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {

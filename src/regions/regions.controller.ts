@@ -1,5 +1,6 @@
 import { Controller, Get, Req } from '@nestjs/common';
 import type { Request } from 'express';
+import { Public } from '../auth/public.decorator.js';
 import { clientIpFromHeaders } from './ip-region.service.js';
 import {
   RegionsService,
@@ -7,6 +8,7 @@ import {
   type RegionRow,
 } from './regions.service.js';
 
+@Public()
 @Controller('regions')
 export class RegionsController {
   constructor(private readonly regionsService: RegionsService) {}

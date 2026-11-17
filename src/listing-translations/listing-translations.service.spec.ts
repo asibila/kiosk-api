@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { RequestUser } from '../auth/current-user.decorator.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { ListingTranslationsService } from './listing-translations.service.js';
 
@@ -22,12 +23,25 @@ const row = {
   updatedBy: null,
 };
 
+const user = { id: 1, role: 'USER' } as RequestUser;
+
+const access = {
+  assertListingOwner: vi.fn(async () => ({
+    id: 28,
+    userId: 1,
+    isActive: true,
+  })),
+};
+
 describe('ListingTranslationsService', () => {
   let service: ListingTranslationsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new ListingTranslationsService(prisma as unknown as PrismaService);
+    service = new ListingTranslationsService(
+      prisma as unknown as PrismaService,
+      access as never,
+    );
   });
 
   it('lists all titles or filters by listing', async () => {
@@ -48,14 +62,15 @@ describe('ListingTranslationsService', () => {
     });
   });
 
-  it('upserts a title and stamps the actor', async () => {
+  it('checks ownership, upserts a title and stamps the actor', async () => {
     prisma.listingTranslation.upsert.mockResolvedValue(row);
 
     await service.upsert(
       { listingId: 28, language: 'en', title: 'Carbon road bike' },
-      1,
+      user,
     );
 
+    expect(access.assertListingOwner).toHaveBeenCalledWith(28, user);
     expect(prisma.listingTranslation.upsert).toHaveBeenCalledWith({
       where: { listingId_language: { listingId: 28, language: 'en' } },
       create: {
@@ -67,6 +82,14 @@ describe('ListingTranslationsService', () => {
       update: { title: 'Carbon road bike', updatedBy: 1 },
       select: expect.any(Object),
     });
+  });
+
+  it('checks ownership before deleting', async () => {
+    prisma.listingTranslation.delete.mockResolvedValue(row);
+
+    await service.remove(28, 'hr', user);
+
+    expect(access.assertListingOwner).toHaveBeenCalledWith(28, user);
   });
 
   it('throws when a translation is missing', async () => {

@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { auditSelect } from '../audit/audit-select.js';
-import { CrudService, type CrudDelegate } from '../common/crud.service.js';
+import type { RequestUser } from '../auth/current-user.decorator.js';
+import { AccessService } from '../common/access.service.js';
+import { rethrowPrismaError } from '../common/prisma-errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateListingDto } from './dto/create-listing.dto.js';
 import type { UpdateListingDto } from './dto/update-listing.dto.js';
@@ -37,31 +39,38 @@ type ListingWithCount = Prisma.ListingGetPayload<{
 }>;
 
 @Injectable()
-export class ListingsService extends CrudService<
-  CreateListingDto,
-  UpdateListingDto,
-  ListingRow
-> {
-  constructor(private readonly prisma: PrismaService) {
-    super(
-      prisma.listing as unknown as CrudDelegate<ListingRow>,
-      listingSelect,
-      'Listing',
-    );
+export class ListingsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
+
+  async create(dto: CreateListingDto, user: RequestUser): Promise<Listing> {
+    try {
+      // The owner always comes from the session; a body `userId` is ignored.
+      const row = await this.prisma.listing.create({
+        data: { ...dto, userId: user.id, createdBy: user.id },
+        select: listingSelect,
+      });
+      // A listing that was just created cannot have selections yet, but
+      // orientation, price and year already count as answered questions.
+      return this.withFacetsCount({ ...row, _count: { facetValueSelections: 0 } });
+    } catch (error) {
+      rethrowPrismaError(error, 'Listing');
+    }
   }
 
-  override async create(
-    dto: CreateListingDto,
-    actorId: number | null = null,
-  ): Promise<Listing> {
-    const row = await super.create(dto, actorId);
-    // A listing that was just created cannot have selections yet, but
-    // orientation, price and year already count as answered questions.
-    return { ...row, facetsCount: this.fieldAnswerCount(row) };
-  }
+  /**
+   * Public catalog: active listings plus the caller's own drafts. Guests never
+   * see somebody else's unpublished listing.
+   */
+  async findAll(user: RequestUser | null = null): Promise<Listing[]> {
+    const where = user
+      ? { OR: [{ isActive: true }, { userId: user.id }] }
+      : { isActive: true };
 
-  override async findAll(): Promise<Listing[]> {
     const rows = await this.prisma.listing.findMany({
+      where,
       select: listingWithCountSelect,
       orderBy: { id: 'asc' },
     });
@@ -69,30 +78,56 @@ export class ListingsService extends CrudService<
     return rows.map((row) => this.withFacetsCount(row));
   }
 
-  override async findOne(id: number): Promise<Listing> {
+  async findOne(id: number, user: RequestUser | null = null): Promise<Listing> {
     const row = await this.prisma.listing.findUnique({
       where: { id },
       select: listingWithCountSelect,
     });
 
-    if (!row) {
+    if (!row || (!row.isActive && row.userId !== user?.id)) {
+      // A draft is indistinguishable from a missing listing for everyone else.
       throw new NotFoundException(`Listing ${id} not found`);
     }
 
     return this.withFacetsCount(row);
   }
 
-  override async update(
+  async update(
     id: number,
     dto: UpdateListingDto,
-    actorId: number | null = null,
+    user: RequestUser,
   ): Promise<Listing> {
-    const row = await super.update(id, dto, actorId);
-    const selectionCount = await this.prisma.facetValueSelection.count({
-      where: { listingId: id },
-    });
+    await this.access.assertListingOwner(id, user);
 
-    return { ...row, facetsCount: selectionCount + this.fieldAnswerCount(row) };
+    // Ownership is never transferred through an update.
+    const { userId: _userId, ...changes } = dto;
+
+    try {
+      const row = await this.prisma.listing.update({
+        where: { id },
+        data: { ...changes, updatedBy: user.id },
+        select: listingSelect,
+      });
+      const selectionCount = await this.prisma.facetValueSelection.count({
+        where: { listingId: id },
+      });
+
+      return {
+        ...row,
+        facetsCount: selectionCount + this.fieldAnswerCount(row),
+      };
+    } catch (error) {
+      rethrowPrismaError(error, 'Listing');
+    }
+  }
+
+  async remove(id: number, user: RequestUser): Promise<void> {
+    await this.access.assertListingOwner(id, user);
+    try {
+      await this.prisma.listing.delete({ where: { id } });
+    } catch (error) {
+      rethrowPrismaError(error, 'Listing');
+    }
   }
 
   private withFacetsCount({ _count, ...row }: ListingWithCount): Listing {

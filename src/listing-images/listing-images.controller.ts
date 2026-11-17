@@ -19,7 +19,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
-import { ActorId } from '../audit/actor-id.decorator.js';
+import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
+import { Public } from '../auth/public.decorator.js';
 import {
   updateListingImageSchema,
   type UpdateListingImageDto,
@@ -50,7 +51,7 @@ export class ListingImagesController {
   create(
     @UploadedFile() file: UploadedImage | undefined,
     @Body() body: Record<string, unknown> | undefined,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<ListingImageDto> {
     if (!file) {
       throw new BadRequestException(
@@ -63,9 +64,10 @@ export class ListingImagesController {
       throw new BadRequestException('listingId must be a positive integer');
     }
 
-    return this.listingImages.create(listingId, file, actorId);
+    return this.listingImages.create(listingId, file, user);
   }
 
+  @Public()
   @Get()
   findAll(@Query('listingId') listingId?: string): Promise<ListingImageDto[]> {
     if (listingId === undefined) return this.listingImages.findAll();
@@ -77,11 +79,13 @@ export class ListingImagesController {
     return this.listingImages.findAll(parsed);
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<ListingImageDto> {
     return this.listingImages.findOne(id);
   }
 
+  @Public()
   @Get(':id/file')
   async file(
     @Param('id', ParseIntPipe) id: number,
@@ -102,14 +106,17 @@ export class ListingImagesController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body({ schema: updateListingImageSchema }) dto: UpdateListingImageDto,
-    @ActorId() actorId: number | null,
+    @CurrentUser() user: RequestUser,
   ): Promise<ListingImageDto> {
-    return this.listingImages.setPrimary(id, dto.primaryImage, actorId);
+    return this.listingImages.setPrimary(id, dto.primaryImage, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.listingImages.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ): Promise<void> {
+    return this.listingImages.remove(id, user);
   }
 }

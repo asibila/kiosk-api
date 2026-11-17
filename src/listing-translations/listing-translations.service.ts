@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { auditSelect } from '../audit/audit-select.js';
+import type { RequestUser } from '../auth/current-user.decorator.js';
+import { AccessService } from '../common/access.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { UpsertListingTranslationDto } from './dto/upsert-listing-translation.dto.js';
 
@@ -21,7 +23,10 @@ export type ListingTranslation = Prisma.ListingTranslationGetPayload<{
 
 @Injectable()
 export class ListingTranslationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
   findAll(listingId?: number): Promise<ListingTranslation[]> {
     return this.prisma.listingTranslation.findMany({
@@ -52,8 +57,10 @@ export class ListingTranslationsService {
   /** Insert a title or replace the existing one for that listing/language. */
   async upsert(
     dto: UpsertListingTranslationDto,
-    actorId: number | null = null,
+    user: RequestUser,
   ): Promise<ListingTranslation> {
+    await this.access.assertListingOwner(dto.listingId, user);
+    const actorId = user.id;
     try {
       return await this.prisma.listingTranslation.upsert({
         where: {
@@ -87,7 +94,12 @@ export class ListingTranslationsService {
     }
   }
 
-  async remove(listingId: number, language: string): Promise<void> {
+  async remove(
+    listingId: number,
+    language: string,
+    user: RequestUser,
+  ): Promise<void> {
+    await this.access.assertListingOwner(listingId, user);
     try {
       await this.prisma.listingTranslation.delete({
         where: { listingId_language: { listingId, language } },

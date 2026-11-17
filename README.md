@@ -110,23 +110,35 @@ a duplicate `email` returns `409`.
 
 ## Auth API
 
-`AuthController` exposes the sign-in endpoint used by the kiosk frontend. It
-validates an email + password pair against the scrypt-verified hash and returns
-the matching user's id.
+`AuthController` exposes the sign-in endpoints used by the kiosk frontend. A
+successful login creates a server-side session and sets an HTTP-only cookie; the
+frontend never holds a user id or sends an actor header.
 
 | Method | Route | Body | Result |
 | --- | --- | --- | --- |
-| `POST` | `/auth/login` | `{ email, password }` | `200` `{ userId }` |
+| `POST` | `/auth/login` | `{ email, password }` | `200` user + `Set-Cookie: kiosk_session=…` |
+| `GET` | `/auth/me` | – | `200` user, or an empty `200` for a guest |
+| `POST` | `/auth/logout` | – | `204`; deletes the session row and clears the cookie |
 | – | – | – | `401` invalid email or password |
 
 ```bash
-curl -X POST http://localhost:3000/auth/login \
+curl -i -X POST http://localhost:3000/auth/login \
   -H 'content-type: application/json' \
   -d '{"email":"tino@example.com","password":"supersecret"}'
 ```
 
-The response is intentionally minimal (`{ userId }`) — the frontend keeps the
-logged-in user client-side and sends the `x-actor-id` header on subsequent writes.
+`Session.id` is the SHA-256 of the cookie token, so a database leak cannot be
+replayed as a session. `AuthGuard` is registered globally: every route needs a
+session unless it is `@Public()`; `@Roles('ADMIN')` protects catalog writes.
+Listing writes, translations, images and selections are limited to the listing
+owner, drafts are private, and chat endpoints only return threads the caller
+takes part in. The SSE stream is authenticated and filtered the same way.
+
+Cookie flags come from the environment: `SESSION_COOKIE_NAME`,
+`SESSION_TTL_DAYS` and `SESSION_COOKIE_SAMESITE`. The deployed static frontend
+is a different origin from the API, so production defaults to
+`SameSite=None; Secure`; a same-origin proxy/BFF can set `lax`.
+
 
 ## Catalog API
 
@@ -247,14 +259,17 @@ exist returns `400`, and an unknown `:id` returns `404`.
 
 Every entity stores `createdAt`, `updatedAt`, `createdBy` and `updatedBy`.
 Prisma maintains the timestamps; `CrudService` fills the actor columns from the
-optional `x-actor-id` request header on `POST` and `PATCH`:
+signed-in session (`request.user.id`) on `POST` and `PATCH`:
 
 ```bash
+# after logging in, the cookie jar holds kiosk_session
 curl -X POST http://localhost:3000/categories \
   -H 'content-type: application/json' \
-  -H 'x-actor-id: 1' \
+  -b session-cookies.txt \
   -d '{"descriptionId": 1}'
 ```
+
+`createdBy` / `updatedBy` cannot be supplied by the client.
 
 Create descriptions with both language texts before the category. UI strings
 also carry the React i18n key in `name`:

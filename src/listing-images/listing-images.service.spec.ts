@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { RequestUser } from '../auth/current-user.decorator.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import {
   ListingImagesService,
@@ -43,13 +44,22 @@ const image = (mimetype = 'image/png', buffer = PNG) => ({
   buffer,
 });
 
+const user = { id: 7, role: 'USER' } as RequestUser;
+
+const access = {
+  assertListingOwner: vi.fn(async () => ({ id: 25, userId: 7, isActive: true })),
+};
+
 describe('ListingImagesService', () => {
   let service: ListingImagesService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.listingImage.count.mockResolvedValue(0);
-    service = new ListingImagesService(prisma as unknown as PrismaService);
+    service = new ListingImagesService(
+      prisma as unknown as PrismaService,
+      access as never,
+    );
   });
 
   describe('create', () => {
@@ -57,7 +67,7 @@ describe('ListingImagesService', () => {
       prisma.listing.findUnique.mockResolvedValue({ id: 25 });
       prisma.listingImage.create.mockResolvedValue(row);
 
-      const created = await service.create(25, image(), 7);
+      const created = await service.create(25, image(), user);
 
       expect(created).toEqual({
         ...row,
@@ -91,7 +101,7 @@ describe('ListingImagesService', () => {
         primaryImage: false,
       });
 
-      await service.create(25, image(), null);
+      await service.create(25, image(), user);
 
       expect(prisma.listingImage.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -102,7 +112,7 @@ describe('ListingImagesService', () => {
 
     it('rejects an unsupported image type without touching the database', async () => {
       await expect(
-        service.create(25, image('image/svg+xml'), null),
+        service.create(25, image('image/svg+xml'), user),
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(prisma.listingImage.create).not.toHaveBeenCalled();
@@ -110,7 +120,7 @@ describe('ListingImagesService', () => {
 
     it('rejects an empty upload', async () => {
       await expect(
-        service.create(25, image('image/png', Buffer.alloc(0)), null),
+        service.create(25, image('image/png', Buffer.alloc(0)), user),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -119,7 +129,7 @@ describe('ListingImagesService', () => {
         service.create(
           25,
           image('image/png', Buffer.alloc(MAX_IMAGE_BYTES + 1)),
-          null,
+          user,
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -130,7 +140,7 @@ describe('ListingImagesService', () => {
       prisma.listing.findUnique.mockResolvedValue({ id: 25 });
 
       await expect(
-        service.create(25, image('image/png', Buffer.from('not an image')), null),
+        service.create(25, image('image/png', Buffer.from('not an image')), user),
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(prisma.listingImage.create).not.toHaveBeenCalled();
@@ -139,7 +149,7 @@ describe('ListingImagesService', () => {
     it('rejects an unknown listing', async () => {
       prisma.listing.findUnique.mockResolvedValue(null);
 
-      await expect(service.create(404, image(), null)).rejects.toBeInstanceOf(
+      await expect(service.create(404, image(), user)).rejects.toBeInstanceOf(
         NotFoundException,
       );
       expect(prisma.listingImage.create).not.toHaveBeenCalled();
@@ -178,7 +188,7 @@ describe('ListingImagesService', () => {
       prisma.listingImage.findUnique.mockResolvedValue({ listingId: 25 });
       prisma.listingImage.update.mockResolvedValue(row);
 
-      const updated = await service.setPrimary(1, true, 7);
+      const updated = await service.setPrimary(1, true, user);
 
       expect(updated).toMatchObject({ id: 1, primaryImage: true });
       expect(prisma.listingImage.updateMany).toHaveBeenCalledWith({
@@ -199,18 +209,20 @@ describe('ListingImagesService', () => {
         primaryImage: false,
       });
 
-      await service.setPrimary(1, false, null);
+      await service.setPrimary(1, false, user);
 
       expect(prisma.listingImage.updateMany).not.toHaveBeenCalled();
       expect(prisma.listingImage.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { primaryImage: false } }),
+        expect.objectContaining({
+          data: { primaryImage: false, updatedBy: 7 },
+        }),
       );
     });
 
     it('throws 404 when the image does not exist', async () => {
       prisma.listingImage.findUnique.mockResolvedValue(null);
 
-      await expect(service.setPrimary(404, true, null)).rejects.toBeInstanceOf(
+      await expect(service.setPrimary(404, true, user)).rejects.toBeInstanceOf(
         NotFoundException,
       );
       expect(prisma.listingImage.update).not.toHaveBeenCalled();
@@ -254,9 +266,9 @@ describe('ListingImagesService', () => {
 
   describe('remove', () => {
     it('deletes the row, cascading to its bytes', async () => {
-      prisma.listingImage.findUnique.mockResolvedValue({ id: 1 });
+      prisma.listingImage.findUnique.mockResolvedValue({ id: 1, listingId: 25 });
 
-      await service.remove(1);
+      await service.remove(1, user);
 
       expect(prisma.listingImage.delete).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -266,7 +278,7 @@ describe('ListingImagesService', () => {
     it('throws 404 when the row does not exist', async () => {
       prisma.listingImage.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove(404)).rejects.toBeInstanceOf(
+      await expect(service.remove(404, user)).rejects.toBeInstanceOf(
         NotFoundException,
       );
       expect(prisma.listingImage.delete).not.toHaveBeenCalled();
