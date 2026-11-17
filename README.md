@@ -283,6 +283,11 @@ The API needs a PostgreSQL database in production. On Render:
    missing interface descriptions with `prisma/seed.mjs`, and then starts the
    server, so the schema, seeded languages and UI strings are created on every
    start. The seed is insert-only, so database edits to existing keys survive.
+   Make sure the host's start command is `npm run start:prod` (or runs
+   `prisma/seed.mjs`): with a bare `node dist/main`, migrations apply but new UI
+   keys are never inserted and the frontend renders raw keys such as
+   `search.regionTitle`. The `20261117223000_add_missing_ui_strings` migration
+   backfills keys that were added after a deployment had last seeded.
 
 Beyond the seeded languages and UI descriptions, the database starts empty, so
 create categories, facets and listings through the API before expecting search

@@ -399,23 +399,23 @@
     "en": "For Sale / Wanted",
     "hr": "Za prodaju / Tražim"
   },
-  "session.aria": {
+  "interview.aria": {
     "en": "{title} interview",
     "hr": "{title} intervju"
   },
-  "session.questionsAnswered": {
+  "interview.questionsAnswered": {
     "en": "Questions answered",
     "hr": "Odgovorena pitanja"
   },
-  "session.answered": {
+  "interview.answered": {
     "en": "{answered} / {total} answered",
     "hr": "{answered} / {total} odgovoreno"
   },
-  "session.empty": {
+  "interview.empty": {
     "en": "This category has no interview questions yet. Facet schemas added to it in the backend will appear here.",
     "hr": "Ova kategorija još nema pitanja za intervju. Značajke dodane na poslužitelju pojavit će se ovdje."
   },
-  "session.answeredTitle": {
+  "interview.answeredTitle": {
     "en": "Answered",
     "hr": "Odgovoreno"
   },
@@ -848,8 +848,8 @@
     "hr": "Prijavite se da vidite svoj profil."
   },
   "loading.title": {
-    "en": "Loading sessions…",
-    "hr": "Učitavanje sesija…"
+    "en": "Loading interviews…",
+    "hr": "Učitavanje intervjua…"
   },
   "loading.body": {
     "en": "Fetching categories, listings and conversations from the backend.",
