@@ -254,14 +254,23 @@ model ListingImageData {
   listingImage ListingImage @relation(fields: [listingImageId], references: [id], onDelete: Cascade)
 }
 
+/// How a facet question is answered: a selectable option or a numeric value.
+enum FacetType {
+  numeric
+  option
+}
+
 /// A facet (filterable attribute) that belongs to a category. `isGeneric`
 /// facets apply to products in every category (for example condition).
+/// `required` facets have to be answered before a listing can be published.
 model FacetSchema {
-  id            Int     @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   descriptionId Int
-  name          String  @unique
+  name          String    @unique
   categoryId    Int
-  isGeneric     Boolean @default(false)
+  isGeneric     Boolean   @default(false)
+  type          FacetType @default(option)
+  required      Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

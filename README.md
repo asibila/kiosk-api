@@ -152,7 +152,7 @@ CRUD controller per entity. Every resource has the same endpoints:
 | `/chat-threads` | - (no fields) |
 | `/listing-chat-threads` | `listingId`, `chatThreadId` |
 | `/inbox-items` | `userId`, `chatThreadId` |
-| `/facet-schemas` | `descriptionId`, `name` (max 225), `categoryId`, `isGeneric` (default false) |
+| `/facet-schemas` | `descriptionId`, `name` (max 225), `categoryId`, `isGeneric` (default false), `type` (`option` or `numeric`), `required` (default false) |
 | `/facet-value-options` | `descriptionId`, `schemaId` |
 | `/facet-value-selections` | `facetValueOptionId`, `listingId` |
 
@@ -179,8 +179,11 @@ dictionaries from the `translations` map; the 223 current keys are inserted by
 descriptions for categories and facets leave `name` null.
 
 The catalog migration associated with the language work also marks `condition`
-as a generic facet (applies to every product), moves `brand` to its parent
-Electronics category and adds a Mobile phones `screen_size` facet.
+as a generic (and required) facet, adds generic orientation, price and year
+facets, moves `brand` to its parent Electronics category and adds a Mobile
+phones `screen_size` facet. Orientation is a facet in the UI/API but its value
+is stored on `Listing.orientation`; price and year use `Listing.price` and
+`Listing.year`.
 
 ### Drafts and listing titles
 

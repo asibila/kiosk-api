@@ -100,6 +100,18 @@ export class SuggestionsService {
         .map((chip) => Number(chip.valueId))
         .filter((id) => Number.isInteger(id) && id > 0),
     );
+
+    // Orientation is a facet in the clients, but its value is stored on the
+    // listing instead of a selection, so it is applied to the listing rows.
+    const orientationChip = options.chips.find(
+      (chip) => chip.kind === 'value' && chip.facet === 'orientation',
+    );
+    const orientation =
+      orientationChip && orientationChip.kind === 'value' &&
+      (orientationChip.valueId === 'buy' || orientationChip.valueId === 'sell')
+        ? orientationChip.valueId
+        : options.orientation;
+
     // A facet can only hold one value per listing in this schema, so hide a
     // facet that already has a chip instead of offering an impossible AND.
     const selectedFacets = new Set(
@@ -119,7 +131,7 @@ export class SuggestionsService {
       if (options.categoryId !== undefined && listing.categoryId !== options.categoryId) {
         return false;
       }
-      if (options.orientation && listing.orientation !== options.orientation) {
+      if (orientation && listing.orientation !== orientation) {
         return false;
       }
       const owned = selectionsByListing.get(listing.id);

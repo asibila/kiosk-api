@@ -41,16 +41,16 @@ export type Category = CategoryRow & {
 export const ALL_CATEGORY_ID = 0;
 
 /**
- * Price and year are numeric range questions rendered by the clients. Unlike
- * condition and the category-specific facets, they are not stored as
- * `FacetSchema` rows, so they have to be added to the count explicitly.
+ * Price and year are numeric range questions rendered by the clients. They have
+ * `FacetSchema` rows of type `numeric` in a seeded database, but the clients
+ * always render them, so the count has to add any that are missing.
  */
 export const RANGE_FACET_COUNT = 2;
 
 /**
- * The three questions every category has: price, condition and year. Condition
- * is normally a generic `FacetSchema`, but the minimum keeps the contract even
- * on a database where that seed row has not been created yet.
+ * The questions every category has at minimum: orientation, price and year.
+ * Condition is normally a generic `FacetSchema` too, but the minimum keeps the
+ * contract even on a database where those seed rows have not been created yet.
  */
 export const MIN_FACETS_COUNT_MAX = 3;
 
@@ -63,10 +63,13 @@ type FacetSchemaForCount = {
   id: number;
   categoryId: number;
   isGeneric: boolean;
+  name?: string;
+  /** Numeric facets are answered through Listing fields, not selections. */
+  type?: 'numeric' | 'option';
 };
 
 export type FacetCounts = {
-  /** Questions that can be answered with a `FacetValueSelection`. */
+  /** Option facets that can be answered with a `FacetValueSelection`. */
   answerable: number;
   /** `answerable` plus the price/year range questions, never below three. */
   max: number;
@@ -75,20 +78,20 @@ export type FacetCounts = {
 /**
  * Counts the interview questions for one category. A question applies when it
  * is generic or when its facet schema belongs to the category or one of its
- * ancestors. The two range facets (price and year) are always part of `max`,
- * which is why every category has a maximum of at least three.
+ * ancestors. Option facets are answerable through selections; numeric facets
+ * (price and year) are answered on the listing itself and only count towards
+ * `max`. Missing orientation and range rows are added so the total always
+ * matches the questions the clients render.
  */
 export function facetCountsFor(
   categoryId: number,
   categories: CategoryForTree[],
   facetSchemas: FacetSchemaForCount[],
 ): FacetCounts {
-  let answerable: number;
+  let applicable: FacetSchemaForCount[];
 
   if (categoryId === ALL_CATEGORY_ID) {
-    answerable = new Set(
-      facetSchemas.filter((schema) => schema.isGeneric).map((schema) => schema.id),
-    ).size;
+    applicable = facetSchemas.filter((schema) => schema.isGeneric);
   } else {
     const parents = new Map(
       categories.map((category) => [category.id, category.parentCategoryId]),
@@ -102,18 +105,42 @@ export function facetCountsFor(
       currentId = parents.get(currentId) ?? null;
     }
 
-    const applicable = new Set<number>();
-    for (const schema of facetSchemas) {
-      if (schema.isGeneric || chain.has(schema.categoryId)) {
-        applicable.add(schema.id);
-      }
-    }
-    answerable = applicable.size;
+    applicable = facetSchemas.filter(
+      (schema) => schema.isGeneric || chain.has(schema.categoryId),
+    );
   }
+
+  let answerable = 0;
+  let numeric = 0;
+  let hasOrientation = false;
+  let hasPrice = false;
+  let hasYear = false;
+
+  for (const schema of applicable) {
+    if (schema.type === 'numeric') {
+      numeric += 1;
+      if (schema.name === 'price') hasPrice = true;
+      if (schema.name === 'year') hasYear = true;
+      continue;
+    }
+
+    answerable += 1;
+    if (schema.name === 'orientation') hasOrientation = true;
+  }
+
+  // The clients always render orientation as a required generic question and
+  // price/year as range questions, even when their facet rows are missing from
+  // an older database.
+  if (!hasOrientation) answerable += 1;
+  const missingRangeQuestions =
+    RANGE_FACET_COUNT - (hasPrice ? 1 : 0) - (hasYear ? 1 : 0);
 
   return {
     answerable,
-    max: Math.max(MIN_FACETS_COUNT_MAX, answerable + RANGE_FACET_COUNT),
+    max: Math.max(
+      MIN_FACETS_COUNT_MAX,
+      answerable + numeric + missingRangeQuestions,
+    ),
   };
 }
 
@@ -268,7 +295,7 @@ export class CategoriesService extends CrudService<
 
   private loadFacetSchemas(): Promise<FacetSchemaForCount[]> {
     return this.prisma.facetSchema.findMany({
-      select: { id: true, categoryId: true, isGeneric: true },
+      select: { id: true, categoryId: true, isGeneric: true, name: true, type: true },
     });
   }
 

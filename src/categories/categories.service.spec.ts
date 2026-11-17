@@ -52,25 +52,48 @@ describe('facetsCountMaxFor', () => {
     { id: 4, categoryId: 3, isGeneric: false },
   ];
 
-  it('counts generic facets and the two range questions for the all category', () => {
-    expect(facetsCountMaxFor(0, categories, facetSchemas)).toBe(3);
-    expect(facetsCountMaxAnswerableFor(0, categories, facetSchemas)).toBe(1);
+  it('counts generic facets, orientation and the two range questions for the all category', () => {
+    expect(facetsCountMaxFor(0, categories, facetSchemas)).toBe(4);
+    expect(facetsCountMaxAnswerableFor(0, categories, facetSchemas)).toBe(2);
+  });
+
+  it('counts option facets separately from numeric facets', () => {
+    const withTypes = [
+      { id: 1, categoryId: 1, isGeneric: true, name: 'orientation', type: 'option' as const },
+      { id: 2, categoryId: 1, isGeneric: true, name: 'condition', type: 'option' as const },
+      { id: 3, categoryId: 1, isGeneric: true, name: 'price', type: 'numeric' as const },
+      { id: 4, categoryId: 1, isGeneric: true, name: 'year', type: 'numeric' as const },
+    ];
+
+    expect(facetsCountMaxFor(0, categories, withTypes)).toBe(4);
+    expect(facetsCountMaxAnswerableFor(0, categories, withTypes)).toBe(2);
+  });
+
+  it('adds the orientation and range questions when their facet rows are missing', () => {
+    const oneRange = [
+      { id: 1, categoryId: 1, isGeneric: true, name: 'condition', type: 'option' as const },
+      { id: 2, categoryId: 1, isGeneric: true, name: 'price', type: 'numeric' as const },
+    ];
+
+    expect(facetsCountMaxFor(0, categories, oneRange)).toBe(4);
+    expect(facetsCountMaxAnswerableFor(0, categories, oneRange)).toBe(2);
   });
 
   it('counts a category facet plus the facets inherited from ancestors', () => {
-    // Category 2: generic condition, brand from category 1, its own facet and
-    // the price/year range questions.
-    expect(facetsCountMaxFor(2, categories, facetSchemas)).toBe(5);
-    expect(facetsCountMaxAnswerableFor(2, categories, facetSchemas)).toBe(3);
+    // Category 2: generic condition, brand from category 1, its own facet,
+    // orientation and the price/year range questions.
+    expect(facetsCountMaxFor(2, categories, facetSchemas)).toBe(6);
+    expect(facetsCountMaxAnswerableFor(2, categories, facetSchemas)).toBe(4);
   });
 
   it('counts a generic facet once when its category is also an ancestor', () => {
     // The generic facet is defined on category 1, which is also in the chain.
-    expect(facetsCountMaxFor(1, categories, facetSchemas)).toBe(4);
+    expect(facetsCountMaxFor(1, categories, facetSchemas)).toBe(5);
   });
 
-  it('returns the three generic questions for a root category without its own facets', () => {
-    expect(facetsCountMaxFor(4, categories, facetSchemas)).toBe(3);
+  it('returns the four shared questions for a root category without its own facets', () => {
+    expect(facetsCountMaxFor(4, categories, facetSchemas)).toBe(4);
+    expect(facetsCountMaxAnswerableFor(4, categories, facetSchemas)).toBe(2);
   });
 
   it('keeps the minimum of three when the generic facet has not been seeded', () => {
@@ -85,7 +108,7 @@ describe('facetsCountMaxFor', () => {
     ];
     const schemas = [{ id: 7, categoryId: 6, isGeneric: false }];
 
-    expect(facetsCountMaxFor(5, cyclic, schemas)).toBe(3);
+    expect(facetsCountMaxFor(5, cyclic, schemas)).toBe(4);
   });
 });
 
@@ -105,8 +128,8 @@ describe('CategoriesService.findAll', () => {
     const rows = await service.findAll();
 
     expect(rows.map((row) => row.id)).toEqual([0, 1, 2]);
-    expect(rows.map((row) => row.facetsCountMax)).toEqual([3, 3, 3]);
-    expect(rows.map((row) => row.facetsCountMaxAnswerable)).toEqual([1, 1, 1]);
+    expect(rows.map((row) => row.facetsCountMax)).toEqual([4, 4, 4]);
+    expect(rows.map((row) => row.facetsCountMaxAnswerable)).toEqual([2, 2, 2]);
   });
 });
 

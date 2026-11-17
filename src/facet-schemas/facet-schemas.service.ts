@@ -13,6 +13,8 @@ const facetSchemaSelect = {
   name: true,
   categoryId: true,
   isGeneric: true,
+  type: true,
+  required: true,
   ...auditSelect,
 } satisfies Prisma.FacetSchemaSelect;
 

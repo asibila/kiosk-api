@@ -67,14 +67,14 @@ function createService() {
 }
 
 describe('ListingsService.facetsCount', () => {
-  it('counts selections plus the answered price and year fields', async () => {
+  it('counts selections plus orientation, price and year', async () => {
     const { service } = createService();
 
     const rows = await service.findAll();
 
     expect(rows.map((row) => [row.id, row.facetsCount])).toEqual([
-      [10, 5],
-      [11, 0],
+      [10, 6],
+      [11, 1],
     ]);
   });
 
@@ -83,7 +83,7 @@ describe('ListingsService.facetsCount', () => {
 
     await expect(service.findOne(10)).resolves.toMatchObject({
       id: 10,
-      facetsCount: 5,
+      facetsCount: 6,
     });
   });
 
@@ -93,7 +93,7 @@ describe('ListingsService.facetsCount', () => {
     await expect(service.findOne(999)).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('reports zero answers for a freshly created listing without price or year', async () => {
+  it('reports the orientation as one answer for a fresh listing', async () => {
     const { service } = createService();
 
     await expect(
@@ -103,7 +103,7 @@ describe('ListingsService.facetsCount', () => {
         userId: 1,
         isActive: false,
       }),
-    ).resolves.toMatchObject({ id: 11, facetsCount: 0 });
+    ).resolves.toMatchObject({ id: 11, facetsCount: 1 });
   });
 
   it('counts price and year supplied on create', async () => {
@@ -118,7 +118,7 @@ describe('ListingsService.facetsCount', () => {
         price: 199.99,
         year: 2024,
       }),
-    ).resolves.toMatchObject({ id: 11, facetsCount: 2 });
+    ).resolves.toMatchObject({ id: 11, facetsCount: 3 });
   });
 
   it('recounts the selections after an update', async () => {
@@ -126,7 +126,7 @@ describe('ListingsService.facetsCount', () => {
 
     await expect(service.update(11, { isActive: true })).resolves.toMatchObject({
       id: 11,
-      facetsCount: 0,
+      facetsCount: 1,
     });
   });
 });

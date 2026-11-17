@@ -20,15 +20,15 @@
     "hr": "Tražim"
   },
   "direction.sell": {
-    "en": "For sale",
+    "en": "For Sale",
     "hr": "Prodaje se"
   },
   "direction.buyAction": {
-    "en": "Buy",
+    "en": "Wanted",
     "hr": "Kupujem"
   },
   "direction.sellAction": {
-    "en": "Sell",
+    "en": "For Sale",
     "hr": "Prodajem"
   },
   "topbar.menu": {
@@ -367,6 +367,10 @@
     "en": "Year",
     "hr": "Godina"
   },
+  "facet.orientation": {
+    "en": "For Sale / Wanted",
+    "hr": "Za prodaju / Tražim"
+  },
   "session.aria": {
     "en": "{title} interview",
     "hr": "{title} intervju"
@@ -431,6 +435,14 @@
     "en": "Choose one of the options.",
     "hr": "Odaberi jednu od opcija."
   },
+  "interview.required": {
+    "en": "Required",
+    "hr": "Obavezno"
+  },
+  "interview.requiredMissing": {
+    "en": "Answer the required questions to continue.",
+    "hr": "Odgovori na obavezna pitanja za nastavak."
+  },
   "interview.priceHint": {
     "en": "Enter the asking price.",
     "hr": "Upiši traženu cijenu."
@@ -472,8 +484,8 @@
     "hr": "Objavljivanje…"
   },
   "interview.chooseDirection": {
-    "en": "Choose Buy or Sell first",
-    "hr": "Prvo odaberi Kupujem ili Prodajem"
+    "en": "Choose For Sale or Wanted first",
+    "hr": "Prvo odaberi Za prodaju ili Tražim"
   },
   "interview.directionAria": {
     "en": "Listing direction",
@@ -676,11 +688,11 @@
     "hr": "Nema oglasa koji odgovaraju trenutnim filtrima."
   },
   "listings.buyTitle": {
-    "en": "Buy listings",
-    "hr": "Oglasi za kupnju"
+    "en": "Wanted listings",
+    "hr": "Traženi oglasi"
   },
   "listings.sellTitle": {
-    "en": "Sell listings",
+    "en": "For Sale listings",
     "hr": "Oglasi za prodaju"
   },
   "listings.searchTitle": {

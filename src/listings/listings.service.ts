@@ -54,8 +54,8 @@ export class ListingsService extends CrudService<
     actorId: number | null = null,
   ): Promise<Listing> {
     const row = await super.create(dto, actorId);
-    // A listing that was just created cannot have selections yet, but price
-    // and year already count as answered interview questions.
+    // A listing that was just created cannot have selections yet, but
+    // orientation, price and year already count as answered questions.
     return { ...row, facetsCount: this.fieldAnswerCount(row) };
   }
 
@@ -101,8 +101,16 @@ export class ListingsService extends CrudService<
     };
   }
 
-  /** Price and year are interview answers stored on the listing itself. */
-  private fieldAnswerCount(row: { price: number | null; year: number | null }): number {
-    return (row.price != null ? 1 : 0) + (row.year != null ? 1 : 0);
+  /** Orientation, price and year are interview answers stored on the listing. */
+  private fieldAnswerCount(row: {
+    orientation: string | null;
+    price: number | null;
+    year: number | null;
+  }): number {
+    return (
+      (row.orientation != null ? 1 : 0) +
+      (row.price != null ? 1 : 0) +
+      (row.year != null ? 1 : 0)
+    );
   }
 }

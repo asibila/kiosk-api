@@ -84,8 +84,7 @@ AI agents and humans integrating with the API.
 | `GET` | `/facet-schemas` | – | `200` facet schema[] | ordered by `id` |
 | `GET` | `/facet-schemas/:id` | – | `200` facet schema | `404` if missing |
 | `PATCH` | `/facet-schemas/:id` | `UpdateFacetSchemaDto` | `200` facet schema | |
-| `DELETE` | `/facet-schemas/:id` | – | `204` empty | `404` if missing; cascades options |
-| `POST` | `/facet-value-options` | `CreateFacetValueOptionDto` | `201` option | |
+| `DELETE` | `/facet-schemas/:id` | – | `204` empty | `404` if missing; cascades options || `POST` | `/facet-value-options` | `CreateFacetValueOptionDto` | `201` option | |
 | `GET` | `/facet-value-options` | – | `200` option[] | ordered by `id` |
 | `GET` | `/facet-value-options/:id` | – | `200` option | `404` if missing |
 | `PATCH` | `/facet-value-options/:id` | `UpdateFacetValueOptionDto` | `200` option | |
@@ -182,8 +181,9 @@ Response: `id`, `categoryId`, `orientation`, `userId`, `isActive`, `price`,
 `year`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `facetsCount`.
 
 `facetsCount` is the number of answered interview questions: the listing's
-`FacetValueSelection` rows plus `1` when `price` is not null and `1` when `year`
-is not null. Brand-new listings with neither field set return `0`.
+`FacetValueSelection` rows plus `1` for orientation and `1` when `price` is not
+null and `1` when `year` is not null. Brand-new listings therefore start at `1`
+(orientation is required).
 
 ### `/listing-translations` — ListingTranslation
 Source: `src/listing-translations/listing-translations.controller.ts`,
@@ -216,19 +216,21 @@ Response: `id`, `descriptionId`, `parentCategoryId`, `createdAt`, `updatedAt`,
 `createdBy`, `updatedBy`, `facetsCountMax`, `facetsCountMaxAnswerable`.
 
 `facetsCountMax` is the number of interview questions that apply to the
-category: every generic `FacetSchema`, every `FacetSchema` defined on the
-category or one of its ancestors, plus the two numeric range questions
-(`price` and `year`, which have no `FacetSchema` row). It is therefore always at
-least `3`.
+category: every generic option `FacetSchema`, every option `FacetSchema` defined
+on the category or one of its ancestors, plus the two numeric range questions
+(`price` and `year`). Orientation and the range questions are always counted,
+even when an older database has no facet rows for them, so the total is at least
+`3`.
 
-`facetsCountMaxAnswerable` excludes those two range questions and is the
-denominator for a listing's completion score (`listings.facetsCount /
-categories.facetsCountMaxAnswerable`).
+`facetsCountMaxAnswerable` counts only the option facets and excludes the
+numeric price/year questions. Orientation is included even though its value is
+read from `Listing.orientation` instead of a `FacetValueSelection`. In the
+current catalog the four shared questions are orientation, condition, price and
+year, so the virtual all category reports `4` and `2`.
 
 `GET /categories` also returns a virtual **all** category with `id: 0`,
-`descriptionId: 0`, no audit values, and `facetsCountMax: 3` on a database with
-the generic condition facet. It groups the questions shared by every category;
-it has no row in the database and cannot be updated or deleted. `GET
+`descriptionId: 0`, no audit values, and the generic questions shared by every
+category. It has no row in the database and cannot be updated or deleted. `GET
 /categories/0` returns the same object.
 
 Notes: deleting a category with child categories sets their `parentCategoryId`
@@ -314,8 +316,8 @@ free text, and counts are computed from `FacetValueSelection` rows.
 | `q` | string | no | Matched against translated value labels, facet labels and facet names |
 | `lang` | string | no | `en` (default) or `hr`; unknown codes fall back to English text |
 | `category` | int | no | Selected category id; includes generic facets and facets inherited from ancestor categories. Omitted = all categories |
-| `orientation` | `buy` \| `sell` | no | Optional frontend extension mirroring the Buy/Sell control |
-| `chips` | JSON string | no | `[{ "kind": "value", "facet": "condition", "valueId": "1" }]` |
+| `orientation` | `buy` \| `sell` | no | Optional legacy filter; orientation chips are preferred |
+| `chips` | JSON string | no | `[{"kind":"value","facet":"condition","valueId":"1"}]` (orientation chips use `valueId` `buy`/`sell`) |
 
 Response:
 
@@ -341,8 +343,10 @@ When `category` is set, a facet is included if it is marked `isGeneric` or is
 defined on the selected category or one of its ancestors. This is how a parent
 category's facets (for example Electronics/brand) apply to its subcategories.
 `kind: "range"` chips are accepted for forward compatibility but ignored until
-numeric facets exist. The frontend calls this as `/api/suggest` through the Vite
-proxy.
+numeric facets exist. An orientation value chip
+(`{"kind":"value","facet":"orientation","valueId":"sell"}`) filters candidate
+listings by `Listing.orientation`. The frontend calls this as `/api/suggest`
+through the Vite proxy.
 
 ```bash
 curl 'http://localhost:3000/suggest?q=new&lang=en&category=2'
@@ -451,17 +455,33 @@ curl -X POST http://localhost:3000/listing-images \
 ### `/facet-schemas` — FacetSchema
 Source: `src/facet-schemas/facet-schemas.controller.ts`, `src/facet-schemas/facet-schemas.service.ts`
 
+A facet is one interview question and one filter. `type` decides how it is
+answered: `option` facets offer `FacetValueOption` values and are stored as
+`FacetValueSelection` rows; `numeric` facets are range questions stored in
+dedicated `Listing` fields (price and year). `required: true` facets must be
+answered before a listing can be published.
+
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
 | `descriptionId` | int | yes | references `descriptions.id`; existence checked by the API |
 | `name` | string | yes | trimmed, 1-225 chars, **unique** |
 | `categoryId` | int | yes | FK → `categories.id` |
-| `isGeneric` | boolean | no | default `false`; generic facets apply to products in every category |
+| `isGeneric` | boolean | no | default `false`; generic facets apply to products in every category (the ALL PRODUCTS section) |
+| `type` | enum | no | `"option"` (default) or `"numeric"` |
+| `required` | boolean | no | default `false`; required questions gate publishing |
 
-Response: `id`, `descriptionId`, `name`, `categoryId`, `isGeneric`, `createdAt`,
-`updatedAt`, `createdBy`, `updatedBy`. Deleting a schema cascades to its options.
-The catalog migration marks `condition` as generic, moves `brand` to
-Electronics and adds the Mobile phones `screen_size` facet.
+Response: `id`, `descriptionId`, `name`, `categoryId`, `isGeneric`, `type`,
+`required`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`. Deleting a
+schema cascades to its options.
+
+The catalog migration marks `condition` as required and generic, adds generic
+facets for orientation (`name: "orientation"`, type `option`, required, options
+For Sale / Wanted), price and year (type `numeric`), moves `brand` to
+Electronics and adds the Mobile phones `screen_size` facet. Orientation is a
+facet in the API and UI but is persisted on `Listing.orientation`; price and year
+are persisted on `Listing.price` and `Listing.year`. The frontend always renders
+these four questions first (orientation, condition, price, year), even if an
+older database has no rows for them.
 
 ### `/facet-value-options` — FacetValueOption
 Source: `src/facet-value-options/facet-value-options.controller.ts`, `src/facet-value-options/facet-value-options.service.ts`
