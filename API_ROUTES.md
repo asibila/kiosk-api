@@ -242,8 +242,14 @@ A description is stored as one row per language under a shared `id`
 (`@@id([id, language])`). The API returns one object per id with a
 `translations` map, and every configured language must be supplied on create.
 
+`name` marks an interface string: it holds the key the React app uses
+(`common.close`) and is stored on every language row. Category and facet
+descriptions omit `name`, so their `name` is `null`. A name is unique per
+language; creating or renaming onto an existing name returns `409`.
+
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
+| `name` | string \| null | no | dotted i18n key, 1–100 chars, unique per language; omitted for category/facet text |
 | `translations` | object | yes (create) | map of language code → text; trimmed, 1–225 chars each |
 
 `POST /descriptions` requires a text for **every** language in the `Language`
@@ -252,21 +258,34 @@ table (`en` and `hr`). A missing or unknown language returns `400`, for example
 
 ```http
 POST /descriptions
+{ "name": "common.close", "translations": { "en": "Close", "hr": "Zatvori" } }
+```
+
+Category and facet descriptions are created without the name:
+
+```http
+POST /descriptions
 { "translations": { "en": "Cars", "hr": "Automobili" } }
 ```
 
 `PATCH /descriptions/:id` accepts a subset of the map and updates only those
-languages:
+languages. A name can also be changed on its own; it is written to every
+language row:
 
 ```http
 PATCH /descriptions/7
 { "translations": { "hr": "Vozila" } }
 ```
 
-Response: `id`, `translations` (`{ "en": "...", "hr": "..." }`), `createdAt`,
-`updatedAt`, `createdBy`, `updatedBy`. `createdAt`/`createdBy` come from the
-oldest translation row; `updatedAt`/`updatedBy` from the most recently changed
-one.
+```http
+PATCH /descriptions/7
+{ "name": "facet.vehicleType" }
+```
+
+Response: `id`, `name`, `translations` (`{ "en": "...", "hr": "..." }`),
+`createdAt`, `updatedAt`, `createdBy`, `updatedBy`. `createdAt`/`createdBy` come
+from the oldest translation row; `updatedAt`/`updatedBy` from the most recently
+changed one.
 
 Notes: deleting a description referenced by a category, facet schema, or facet
 value option returns `400`. Category/FacetSchema/FacetValueOption reference
@@ -492,6 +511,7 @@ Plain integer columns with **no** foreign key: `Listing.userId`,
 - `users.email`
 - `languages.code` (primary key)
 - `descriptions` composite primary key `(id, language)`
+- `descriptions (name, language)` for named interface strings; rows with a null name are unaffected
 - `facet-schemas.name`
 - `listing-chat-threads.chatThreadId`
 - `inbox-items.chatThreadId`

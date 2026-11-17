@@ -138,6 +138,9 @@ model Category {
 model Description {
   id       Int
   language String
+  /// i18n key for interface strings (`common.close`); null for category/facet
+  /// descriptions. The same key is stored on every language row of the group.
+  name     String?
   text     String
 
   createdAt DateTime @default(now())
@@ -148,6 +151,7 @@ model Description {
   languageRef Language @relation(fields: [language], references: [code])
 
   @@id([id, language])
+  @@unique([name, language])
   @@index([language])
 }
 

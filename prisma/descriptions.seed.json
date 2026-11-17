@@ -1,0 +1,894 @@
+{
+  "common.close": {
+    "en": "Close",
+    "hr": "Zatvori"
+  },
+  "common.cancel": {
+    "en": "Cancel",
+    "hr": "Odustani"
+  },
+  "common.done": {
+    "en": "Done",
+    "hr": "Gotovo"
+  },
+  "common.ok": {
+    "en": "OK",
+    "hr": "U redu"
+  },
+  "direction.buy": {
+    "en": "Wanted",
+    "hr": "Tražim"
+  },
+  "direction.sell": {
+    "en": "For sale",
+    "hr": "Prodaje se"
+  },
+  "direction.buyAction": {
+    "en": "Buy",
+    "hr": "Kupujem"
+  },
+  "direction.sellAction": {
+    "en": "Sell",
+    "hr": "Prodajem"
+  },
+  "topbar.menu": {
+    "en": "Toggle my listings drawer",
+    "hr": "Otvori/zatvori popis mojih oglasa"
+  },
+  "topbar.profile": {
+    "en": "Open profile",
+    "hr": "Otvori profil"
+  },
+  "topbar.language": {
+    "en": "Language",
+    "hr": "Jezik"
+  },
+  "topbar.themeLight": {
+    "en": "Switch to light mode",
+    "hr": "Prijelaz na svijetli način"
+  },
+  "topbar.themeDark": {
+    "en": "Switch to dark mode",
+    "hr": "Prijelaz na tamni način"
+  },
+  "topbar.actions": {
+    "en": "Top bar actions",
+    "hr": "Radnje u gornjoj traci"
+  },
+  "topbar.home": {
+    "en": "Go to search",
+    "hr": "Idi na pretraživanje"
+  },
+  "login.aria": {
+    "en": "Log in",
+    "hr": "Prijava"
+  },
+  "login.title": {
+    "en": "Kiosk",
+    "hr": "Kiosk"
+  },
+  "login.email": {
+    "en": "Email",
+    "hr": "Email"
+  },
+  "login.password": {
+    "en": "Password",
+    "hr": "Lozinka"
+  },
+  "login.signin": {
+    "en": "Log in",
+    "hr": "Prijavi se"
+  },
+  "login.signingIn": {
+    "en": "Signing in…",
+    "hr": "Prijava…"
+  },
+  "login.invalid": {
+    "en": "Invalid email or password.",
+    "hr": "Neispravan email ili lozinka."
+  },
+  "login.failed": {
+    "en": "Sign in failed.",
+    "hr": "Prijava nije uspjela."
+  },
+  "drawer.aria": {
+    "en": "My listings",
+    "hr": "Moji oglasi"
+  },
+  "drawer.title": {
+    "en": "My listings",
+    "hr": "Moji oglasi"
+  },
+  "drawer.empty": {
+    "en": "No listings yet",
+    "hr": "Još nema oglasa"
+  },
+  "drawer.delete": {
+    "en": "Delete listing",
+    "hr": "Obriši oglas"
+  },
+  "drawer.deleteAria": {
+    "en": "Delete {title}",
+    "hr": "Obriši {title}"
+  },
+  "drawer.conversations": {
+    "en": "Conversations for {title}",
+    "hr": "Razgovori za {title}"
+  },
+  "drawer.chat": {
+    "en": "Chat #{id}",
+    "hr": "Razgovor #{id}"
+  },
+  "drawer.noMessages": {
+    "en": "No messages yet",
+    "hr": "Još nema poruka"
+  },
+  "drawer.unread": {
+    "en": "{count} unread",
+    "hr": "{count} nepročitano"
+  },
+  "drawer.newListing": {
+    "en": "New listing",
+    "hr": "Novi oglas"
+  },
+  "drawer.messages": {
+    "en": "Messages",
+    "hr": "Poruke"
+  },
+  "drawer.settings": {
+    "en": "Settings",
+    "hr": "Postavke"
+  },
+  "drawer.guest": {
+    "en": "Sign in to see your listings and messages.",
+    "hr": "Prijavite se da vidite svoje oglase i poruke."
+  },
+  "drawer.signIn": {
+    "en": "Sign in",
+    "hr": "Prijavi se"
+  },
+  "drawer.signOut": {
+    "en": "Sign out",
+    "hr": "Odjavi se"
+  },
+  "search.aria": {
+    "en": "Search kiosk",
+    "hr": "Pretraži kiosk"
+  },
+  "search.title": {
+    "en": "Search kiosk",
+    "hr": "Pretraži kiosk"
+  },
+  "search.placeholder": {
+    "en": "Search listings…",
+    "hr": "Pretraži oglase…"
+  },
+  "search.listingsAria": {
+    "en": "Search listings",
+    "hr": "Pretraži oglase"
+  },
+  "search.categoryAria": {
+    "en": "Category: {category}. Choose a category",
+    "hr": "Kategorija: {category}. Odaberi kategoriju"
+  },
+  "search.allCategories": {
+    "en": "All categories",
+    "hr": "Sve kategorije"
+  },
+  "search.filter": {
+    "en": "Filter",
+    "hr": "Filtriraj"
+  },
+  "search.submit": {
+    "en": "Search",
+    "hr": "Pretraži"
+  },
+  "search.commitText": {
+    "en": "Only facet filters can be searched. Choose a suggestion for “{text}”.",
+    "hr": "Pretraživati se može samo po filtrima. Odaberi prijedlog za „{text}”."
+  },
+  "search.resultCount.one": {
+    "en": "{count} matching ad",
+    "hr": "{count} odgovarajući oglas"
+  },
+  "search.resultCount.many": {
+    "en": "{count} matching ads",
+    "hr": "{count} odgovarajućih oglasa"
+  },
+  "results.aria": {
+    "en": "Search results",
+    "hr": "Rezultati pretrage"
+  },
+  "results.title": {
+    "en": "Search results",
+    "hr": "Rezultati pretrage"
+  },
+  "results.edit": {
+    "en": "Edit search",
+    "hr": "Uredi pretragu"
+  },
+  "results.filters": {
+    "en": "Active filters",
+    "hr": "Aktivni filtri"
+  },
+  "results.removeFilter": {
+    "en": "Remove filter {label}",
+    "hr": "Ukloni filter {label}"
+  },
+  "results.open": {
+    "en": "Open {title}",
+    "hr": "Otvori {title}"
+  },
+  "listing.aria": {
+    "en": "Listing details",
+    "hr": "Detalji oglasa"
+  },
+  "listing.back": {
+    "en": "Back to search",
+    "hr": "Natrag na pretragu"
+  },
+  "listing.backResults": {
+    "en": "Back to results",
+    "hr": "Natrag na rezultate"
+  },
+  "listing.notFound": {
+    "en": "This listing no longer exists.",
+    "hr": "Ovaj oglas više ne postoji."
+  },
+  "listing.noImages": {
+    "en": "No photos yet.",
+    "hr": "Još nema fotografija."
+  },
+  "listing.photo": {
+    "en": "Photo {number}",
+    "hr": "Fotografija {number}"
+  },
+  "listing.category": {
+    "en": "Category",
+    "hr": "Kategorija"
+  },
+  "listing.direction": {
+    "en": "Type",
+    "hr": "Vrsta"
+  },
+  "listing.seller": {
+    "en": "Seller",
+    "hr": "Prodavač"
+  },
+  "listing.you": {
+    "en": "You",
+    "hr": "Ti"
+  },
+  "listing.listed": {
+    "en": "Listed",
+    "hr": "Objavljeno"
+  },
+  "listing.details": {
+    "en": "Details",
+    "hr": "Detalji"
+  },
+  "listing.contact": {
+    "en": "Contact seller",
+    "hr": "Kontaktiraj prodavača"
+  },
+  "listing.contacting": {
+    "en": "Starting conversation…",
+    "hr": "Pokretanje razgovora…"
+  },
+  "listing.signInToContact": {
+    "en": "Sign in to contact the seller",
+    "hr": "Prijavi se za kontakt s prodavačem"
+  },
+  "listing.yourNote": {
+    "en": "This is your listing.",
+    "hr": "Ovo je tvoj oglas."
+  },
+  "listing.draft": {
+    "en": "Draft",
+    "hr": "Skica"
+  },
+  "completeness.aria": {
+    "en": "{answered} of {total} interview questions answered",
+    "hr": "{answered} od {total} pitanja intervjua odgovoreno"
+  },
+  "facet.placeholder": {
+    "en": "Search by model, fuel, year…",
+    "hr": "Pretraži po modelu, gorivu, godini…"
+  },
+  "facet.inputLabel": {
+    "en": "Search filters",
+    "hr": "Pretraži filtre"
+  },
+  "facet.suggestions": {
+    "en": "Filter suggestions",
+    "hr": "Prijedlozi filtara"
+  },
+  "facet.loading": {
+    "en": "Loading suggestions…",
+    "hr": "Učitavanje prijedloga…"
+  },
+  "facet.error": {
+    "en": "Couldn’t load suggestions",
+    "hr": "Prijedlozi se nisu mogli učitati"
+  },
+  "facet.noMatch": {
+    "en": "No matching filter for “{text}”",
+    "hr": "Nema filtra koji odgovara „{text}”"
+  },
+  "facet.remove": {
+    "en": "Remove {facetLabel} {label}",
+    "hr": "Ukloni {facetLabel} {label}"
+  },
+  "facet.resultCount.one": {
+    "en": "{count} suggestion",
+    "hr": "{count} prijedlog"
+  },
+  "facet.resultCount.many": {
+    "en": "{count} suggestions",
+    "hr": "{count} prijedloga"
+  },
+  "facet.rangeMin": {
+    "en": "Min",
+    "hr": "Najmanje"
+  },
+  "facet.rangeMax": {
+    "en": "Max",
+    "hr": "Najviše"
+  },
+  "facet.rangeApply": {
+    "en": "Add",
+    "hr": "Dodaj"
+  },
+  "facet.rangeUpdate": {
+    "en": "Update",
+    "hr": "Ažuriraj"
+  },
+  "facet.rangeClear": {
+    "en": "Clear",
+    "hr": "Očisti"
+  },
+  "facet.rangeFrom": {
+    "en": "from {value}",
+    "hr": "od {value}"
+  },
+  "facet.rangeUpTo": {
+    "en": "up to {value}",
+    "hr": "do {value}"
+  },
+  "facet.rangeAny": {
+    "en": "any",
+    "hr": "bilo koje"
+  },
+  "facet.price": {
+    "en": "Price",
+    "hr": "Cijena"
+  },
+  "facet.year": {
+    "en": "Year",
+    "hr": "Godina"
+  },
+  "session.aria": {
+    "en": "{title} interview",
+    "hr": "{title} intervju"
+  },
+  "session.questionsAnswered": {
+    "en": "Questions answered",
+    "hr": "Odgovorena pitanja"
+  },
+  "session.answered": {
+    "en": "{answered} / {total} answered",
+    "hr": "{answered} / {total} odgovoreno"
+  },
+  "session.empty": {
+    "en": "This category has no interview questions yet. Facet schemas added to it in the backend will appear here.",
+    "hr": "Ova kategorija još nema pitanja za intervju. Značajke dodane na poslužitelju pojavit će se ovdje."
+  },
+  "session.answeredTitle": {
+    "en": "Answered",
+    "hr": "Odgovoreno"
+  },
+  "browse.aria": {
+    "en": "Browse marketplace",
+    "hr": "Pregledaj tržnicu"
+  },
+  "browse.title": {
+    "en": "Browse",
+    "hr": "Pregledaj"
+  },
+  "browse.breadcrumb": {
+    "en": "Breadcrumb",
+    "hr": "Putanja"
+  },
+  "browse.home": {
+    "en": "Home",
+    "hr": "Početna"
+  },
+  "browse.open": {
+    "en": "Open {title}",
+    "hr": "Otvori {title}"
+  },
+  "browse.subcategory.one": {
+    "en": "{count} subcategory",
+    "hr": "{count} potkategorija"
+  },
+  "browse.subcategory.many": {
+    "en": "{count} subcategories",
+    "hr": "{count} potkategorija"
+  },
+  "browse.listing.one": {
+    "en": "{count} listing",
+    "hr": "{count} oglas"
+  },
+  "browse.listing.many": {
+    "en": "{count} listings",
+    "hr": "{count} oglasa"
+  },
+  "browse.category": {
+    "en": "Category",
+    "hr": "Kategorija"
+  },
+  "interview.choose": {
+    "en": "Choose one of the options.",
+    "hr": "Odaberi jednu od opcija."
+  },
+  "interview.priceHint": {
+    "en": "Enter the asking price.",
+    "hr": "Upiši traženu cijenu."
+  },
+  "interview.yearHint": {
+    "en": "Enter the model year.",
+    "hr": "Upiši godinu modela."
+  },
+  "interview.saveAnswer": {
+    "en": "Save",
+    "hr": "Spremi"
+  },
+  "interview.next": {
+    "en": "Next >",
+    "hr": "Dalje >"
+  },
+  "interview.creatingDraft": {
+    "en": "Creating draft…",
+    "hr": "Stvaranje skice…"
+  },
+  "interview.previous": {
+    "en": "< Previous",
+    "hr": "< Natrag"
+  },
+  "interview.signInToPublish": {
+    "en": "Sign in to publish",
+    "hr": "Prijavite se za objavu"
+  },
+  "interview.search": {
+    "en": "Search",
+    "hr": "Traži"
+  },
+  "interview.publish": {
+    "en": "Publish",
+    "hr": "Objavi"
+  },
+  "interview.publishing": {
+    "en": "Publishing…",
+    "hr": "Objavljivanje…"
+  },
+  "interview.chooseDirection": {
+    "en": "Choose Buy or Sell first",
+    "hr": "Prvo odaberi Kupujem ili Prodajem"
+  },
+  "interview.directionAria": {
+    "en": "Listing direction",
+    "hr": "Smjer oglasa"
+  },
+  "wizard.step2": {
+    "en": "Step 2 of 3 — Edit",
+    "hr": "Korak 2 od 3 — Uredi"
+  },
+  "wizard.step3": {
+    "en": "Step 3 of 3 — Preview",
+    "hr": "Korak 3 od 3 — Pregled"
+  },
+  "wizard.editAria": {
+    "en": "Edit listing",
+    "hr": "Uredi oglas"
+  },
+  "wizard.previewAria": {
+    "en": "Preview listing",
+    "hr": "Pregled oglasa"
+  },
+  "wizard.images": {
+    "en": "Images",
+    "hr": "Slike"
+  },
+  "wizard.title": {
+    "en": "Title ({language})",
+    "hr": "Naslov ({language})"
+  },
+  "wizard.translate": {
+    "en": "Translate",
+    "hr": "Prevedi"
+  },
+  "wizard.titleHint": {
+    "en": "Shown in search results. Pick Translate to add the other languages.",
+    "hr": "Prikazuje se u rezultatima pretrage. Odaberi Prevedi za ostale jezike."
+  },
+  "wizard.titleSaving": {
+    "en": "Saving title…",
+    "hr": "Spremanje naslova…"
+  },
+  "translate.title": {
+    "en": "Translate title",
+    "hr": "Prevedi naslov"
+  },
+  "translate.hint": {
+    "en": "Enter a title for each language. Empty languages fall back to another translation.",
+    "hr": "Upiši naslov za svaki jezik. Prazni jezici koriste drugi dostupni prijevod."
+  },
+  "translate.save": {
+    "en": "Save translations",
+    "hr": "Spremi prijevode"
+  },
+  "translate.saving": {
+    "en": "Saving…",
+    "hr": "Spremanje…"
+  },
+  "wizard.noImages": {
+    "en": "No images yet",
+    "hr": "Još nema slika"
+  },
+  "wizard.imageCount.one": {
+    "en": "{count} image",
+    "hr": "{count} slika"
+  },
+  "wizard.imageCount.many": {
+    "en": "{count} images",
+    "hr": "{count} slika"
+  },
+  "wizard.primary": {
+    "en": "Primary",
+    "hr": "Glavna"
+  },
+  "wizard.makePrimary": {
+    "en": "Make primary image",
+    "hr": "Postavi kao glavnu sliku"
+  },
+  "wizard.removeImage": {
+    "en": "Remove image",
+    "hr": "Ukloni sliku"
+  },
+  "wizard.removeAria": {
+    "en": "Remove {name}",
+    "hr": "Ukloni {name}"
+  },
+  "wizard.uploading": {
+    "en": "Uploading…",
+    "hr": "Prijenos…"
+  },
+  "wizard.addImages": {
+    "en": "Add images",
+    "hr": "Dodaj slike"
+  },
+  "wizard.primaryHint": {
+    "en": "The primary image is the thumbnail shown in search results.",
+    "hr": "Glavna slika je minijatura prikazana u rezultatima pretrage."
+  },
+  "wizard.facets": {
+    "en": "Facets",
+    "hr": "Značajke"
+  },
+  "wizard.noAnswers": {
+    "en": "No questions answered.",
+    "hr": "Nema odgovorenih pitanja."
+  },
+  "wizard.noUploads": {
+    "en": "No images uploaded.",
+    "hr": "Nema učitanih slika."
+  },
+  "chat.aria": {
+    "en": "Chat: {title}",
+    "hr": "Razgovor: {title}"
+  },
+  "chat.with": {
+    "en": "Chatting with {name}",
+    "hr": "Razgovor s {name}"
+  },
+  "chat.otherUser": {
+    "en": "the other user",
+    "hr": "drugi korisnik"
+  },
+  "chat.live": {
+    "en": "Live",
+    "hr": "Uživo"
+  },
+  "chat.connecting": {
+    "en": "Connecting…",
+    "hr": "Povezivanje…"
+  },
+  "chat.reconnecting": {
+    "en": "Reconnecting…",
+    "hr": "Ponovno povezivanje…"
+  },
+  "chat.messagesAria": {
+    "en": "Messages",
+    "hr": "Poruke"
+  },
+  "chat.attach": {
+    "en": "Attach",
+    "hr": "Priloži"
+  },
+  "chat.attachFile": {
+    "en": "Attach file",
+    "hr": "Priloži datoteku"
+  },
+  "chat.attachmentType": {
+    "en": "Attachment type",
+    "hr": "Vrsta privitka"
+  },
+  "chat.image": {
+    "en": "Image",
+    "hr": "Slika"
+  },
+  "chat.youtube": {
+    "en": "YouTube video",
+    "hr": "YouTube video"
+  },
+  "chat.gps": {
+    "en": "GPS location",
+    "hr": "GPS lokacija"
+  },
+  "chat.placeholder": {
+    "en": "Type a message…",
+    "hr": "Upiši poruku…"
+  },
+  "chat.messageText": {
+    "en": "Message text",
+    "hr": "Tekst poruke"
+  },
+  "chat.send": {
+    "en": "Send message",
+    "hr": "Pošalji poruku"
+  },
+  "chat.attachmentPlaceholder": {
+    "en": "{label} — placeholder",
+    "hr": "{label} — privitak"
+  },
+  "facets.aria": {
+    "en": "Filter",
+    "hr": "Filtriraj"
+  },
+  "facets.title": {
+    "en": "Filter",
+    "hr": "Filtriraj"
+  },
+  "facets.all": {
+    "en": "All",
+    "hr": "Sve"
+  },
+  "facets.empty": {
+    "en": "No facets for this category.",
+    "hr": "Nema značajki za ovu kategoriju."
+  },
+  "facets.done": {
+    "en": "Done",
+    "hr": "Gotovo"
+  },
+  "listings.empty": {
+    "en": "No listings match the current filters.",
+    "hr": "Nema oglasa koji odgovaraju trenutnim filtrima."
+  },
+  "listings.buyTitle": {
+    "en": "Buy listings",
+    "hr": "Oglasi za kupnju"
+  },
+  "listings.sellTitle": {
+    "en": "Sell listings",
+    "hr": "Oglasi za prodaju"
+  },
+  "listings.searchTitle": {
+    "en": "Search listings",
+    "hr": "Rezultati pretrage"
+  },
+  "listings.your": {
+    "en": "Your listing: {title}",
+    "hr": "Tvoj oglas: {title}"
+  },
+  "listings.start": {
+    "en": "Start conversation about {title}",
+    "hr": "Započni razgovor o {title}"
+  },
+  "listings.yourTitle": {
+    "en": "This is your listing",
+    "hr": "Ovo je tvoj oglas"
+  },
+  "listings.startTitle": {
+    "en": "Start conversation",
+    "hr": "Započni razgovor"
+  },
+  "messages.aria": {
+    "en": "Messages",
+    "hr": "Poruke"
+  },
+  "messages.title": {
+    "en": "Messages",
+    "hr": "Poruke"
+  },
+  "messages.back": {
+    "en": "Back to inbox",
+    "hr": "Natrag na sandučić"
+  },
+  "messages.empty": {
+    "en": "No conversations yet.",
+    "hr": "Još nema razgovora."
+  },
+  "messages.inbox": {
+    "en": "Inbox",
+    "hr": "Sandučić"
+  },
+  "delete.title": {
+    "en": "Delete listing",
+    "hr": "Obriši oglas"
+  },
+  "delete.message": {
+    "en": "Are you sure?",
+    "hr": "Jeste li sigurni?"
+  },
+  "delete.detail": {
+    "en": "{title} will be permanently deleted.",
+    "hr": "{title} će biti trajno obrisan."
+  },
+  "delete.confirm": {
+    "en": "Yes",
+    "hr": "Da"
+  },
+  "delete.busy": {
+    "en": "Deleting…",
+    "hr": "Brisanje…"
+  },
+  "report.title": {
+    "en": "Listing created",
+    "hr": "Oglas stvoren"
+  },
+  "report.body": {
+    "en": "Listing created, thank you for using kiosk.",
+    "hr": "Oglas je stvoren, hvala što koristite kiosk."
+  },
+  "settings.title": {
+    "en": "Settings",
+    "hr": "Postavke"
+  },
+  "settings.body": {
+    "en": "Appearance, notifications and privacy controls live here. Nothing is wired up yet — this panel is a placeholder.",
+    "hr": "Ovdje se nalaze izgled, obavijesti i postavke privatnosti. Još ništa nije povezano — ovaj je panel privremen."
+  },
+  "profile.title": {
+    "en": "Profile",
+    "hr": "Profil"
+  },
+  "profile.loading": {
+    "en": "Loading profile…",
+    "hr": "Učitavanje profila…"
+  },
+  "profile.name": {
+    "en": "Name",
+    "hr": "Ime"
+  },
+  "profile.email": {
+    "en": "Email",
+    "hr": "Email"
+  },
+  "profile.role": {
+    "en": "Role",
+    "hr": "Uloga"
+  },
+  "profile.status": {
+    "en": "Status",
+    "hr": "Status"
+  },
+  "profile.active": {
+    "en": "Active",
+    "hr": "Aktivan"
+  },
+  "profile.inactive": {
+    "en": "Inactive",
+    "hr": "Neaktivan"
+  },
+  "profile.userId": {
+    "en": "User ID",
+    "hr": "ID korisnika"
+  },
+  "profile.note": {
+    "en": "Loaded from the backend users table.",
+    "hr": "Učitano iz tablice korisnika na poslužitelju."
+  },
+  "profile.noUsers": {
+    "en": "The backend has no users yet.",
+    "hr": "Poslužitelj još nema korisnika."
+  },
+  "profile.guest": {
+    "en": "Sign in to see your profile.",
+    "hr": "Prijavite se da vidite svoj profil."
+  },
+  "loading.title": {
+    "en": "Loading sessions…",
+    "hr": "Učitavanje sesija…"
+  },
+  "loading.body": {
+    "en": "Fetching categories, listings and conversations from the backend.",
+    "hr": "Dohvaćanje kategorija, oglasa i razgovora s poslužitelja."
+  },
+  "error.title": {
+    "en": "Cannot load data",
+    "hr": "Nije moguće učitati podatke"
+  },
+  "error.hint": {
+    "en": "Make sure the backend is running, then try again.",
+    "hr": "Provjerite radi li poslužitelj, pa pokušajte ponovno."
+  },
+  "error.retry": {
+    "en": "Try again",
+    "hr": "Pokušaj ponovno"
+  },
+  "empty.browse": {
+    "en": "Browse",
+    "hr": "Pregledaj"
+  },
+  "empty.noCategories": {
+    "en": "The backend has no categories, so there is nothing to interview yet.",
+    "hr": "Poslužitelj nema kategorija pa još nema što intervjuirati."
+  },
+  "notice.imageUploadFailed": {
+    "en": "Image upload failed: {message}",
+    "hr": "Prijenos slike nije uspio: {message}"
+  },
+  "notice.imageDeleteFailed": {
+    "en": "Could not delete image: {message}",
+    "hr": "Slika nije obrisana: {message}"
+  },
+  "notice.primaryFailed": {
+    "en": "Could not set primary image: {message}",
+    "hr": "Glavna slika nije postavljena: {message}"
+  },
+  "notice.conversationStarted": {
+    "en": "Conversation started for {title}.",
+    "hr": "Razgovor započet za {title}."
+  },
+  "notice.conversationFailed": {
+    "en": "Could not start conversation: {message}",
+    "hr": "Razgovor nije započet: {message}"
+  },
+  "notice.directionFailed": {
+    "en": "Direction not saved: {message}",
+    "hr": "Smjer nije spremljen: {message}"
+  },
+  "notice.answerFailed": {
+    "en": "Answer not saved: {message}",
+    "hr": "Odgovor nije spremljen: {message}"
+  },
+  "notice.draftFailed": {
+    "en": "Could not create the draft listing: {message}",
+    "hr": "Skica oglasa nije stvorena: {message}"
+  },
+  "notice.titleFailed": {
+    "en": "Title not saved: {message}",
+    "hr": "Naslov nije spremljen: {message}"
+  },
+  "notice.publishFailed": {
+    "en": "Publish failed: {message}",
+    "hr": "Objava nije uspjela: {message}"
+  },
+  "notice.publishImageFailed": {
+    "en": "Listing saved, but image upload failed: {message}",
+    "hr": "Oglas je spremljen, ali prijenos slike nije uspio: {message}"
+  },
+  "notice.deleted": {
+    "en": "Deleted {title}.",
+    "hr": "Obrisano: {title}."
+  },
+  "notice.deleteFailed": {
+    "en": "Delete failed: {message}",
+    "hr": "Brisanje nije uspjelo: {message}"
+  },
+  "notice.messageFailed": {
+    "en": "Message not saved to the backend: {message}",
+    "hr": "Poruka nije spremljena na poslužitelj: {message}"
+  }
+}

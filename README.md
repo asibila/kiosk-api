@@ -72,6 +72,9 @@ $ npm run prisma:generate
 # apply pending migrations (production / CI)
 $ npm run prisma:deploy
 
+# insert missing UI descriptions (run after migrations, once per environment)
+$ npm run prisma:seed
+
 # browse the data
 $ npm run prisma:studio
 ```
@@ -168,6 +171,13 @@ language(s). `Category.descriptionId`, `FacetSchema.descriptionId` and
 that it exists, but the description id is not unique on its own — it is half of
 the `(id, language)` primary key — so there is no DB-level constraint).
 
+Descriptions with a non-null `name` are interface strings. The name is the React
+i18n key (`common.close`) and is unique per language (`(name, language)`). The
+frontend loads them from `GET /descriptions` at startup and builds its
+dictionaries from the `translations` map; the 223 current keys are inserted by
+`npm run prisma:seed` after applying migrations. Entity
+descriptions for categories and facets leave `name` null.
+
 The catalog migration associated with the language work also marks `condition`
 as a generic facet (applies to every product), moves `brand` to its parent
 Electronics category and adds a Mobile phones `screen_size` facet.
@@ -233,12 +243,17 @@ curl -X POST http://localhost:3000/categories \
   -d '{"descriptionId": 1}'
 ```
 
-Create descriptions with both language texts before the category:
+Create descriptions with both language texts before the category. UI strings
+also carry the React i18n key in `name`:
 
 ```bash
 curl -X POST http://localhost:3000/descriptions \
   -H 'content-type: application/json' \
   -d '{"translations":{"en":"Cars","hr":"Automobili"}}'
+
+curl -X POST http://localhost:3000/descriptions \
+  -H 'content-type: application/json' \
+  -d '{"name":"common.close","translations":{"en":"Close","hr":"Zatvori"}}'
 ```
 
 The keys are stored as plain integer columns rather than foreign keys, so audit
@@ -251,13 +266,15 @@ The API needs a PostgreSQL database in production. On Render:
 1. Create a **Postgres** instance in the same region as the web service.
 2. Set the web service's `DATABASE_URL` to the instance's **Internal Database
    URL** (it already includes `sslmode=require`).
-3. Deploy. `npm run start:prod` runs `prisma migrate deploy` before starting the
-   server, so the schema and the seeded languages are created automatically.
+3. Deploy. `npm run start:prod` runs `prisma migrate deploy` and then starts the
+   server, so the schema and seeded languages are created automatically. Run
+   `npm run prisma:seed` once (from the deploy shell or a release step) to insert
+   the interface descriptions.
 
-The database starts otherwise empty, so create categories, facets and listings
-through the API or add a seed script before expecting search results. This
-replaces the old SQLite file, which was wiped on every deploy because the web
-service has no persistent disk.
+Beyond the seeded languages and UI descriptions, the database starts empty, so
+create categories, facets and listings through the API before expecting search
+results. This replaces the old SQLite file, which was wiped on every deploy
+because the web service has no persistent disk.
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 

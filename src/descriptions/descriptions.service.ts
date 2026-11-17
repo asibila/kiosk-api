@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import type { UpdateDescriptionDto } from './dto/update-description.dto.js';
 const descriptionSelect = {
   id: true,
   language: true,
+  name: true,
   text: true,
   ...auditSelect,
 } satisfies Prisma.DescriptionSelect;
@@ -23,6 +25,8 @@ type DescriptionRow = Prisma.DescriptionGetPayload<{
 /** One description group, with every language's text under `translations`. */
 export interface Description {
   id: number;
+  /** React i18n key for interface strings; null for category/facet text. */
+  name: string | null;
   translations: Record<string, string>;
   createdAt: Date;
   updatedAt: Date;
@@ -35,6 +39,10 @@ export interface Description {
  * (`@@id([id, language])`). This service exposes them as a single object per
  * id so callers always receive every translation together, and guarantees a
  * new description is created for each language in the `Language` table.
+ *
+ * A `name` marks a description as an interface string: it holds the key used
+ * by the frontend (`common.close`) and is stored on every language row. The
+ * frontend builds its translation dictionaries from `GET /descriptions`.
  */
 @Injectable()
 export class DescriptionsService {
@@ -49,6 +57,7 @@ export class DescriptionsService {
 
     return {
       id: rows[0].id,
+      name: rows.find((row) => row.name != null)?.name ?? null,
       translations,
       createdAt: earliest.createdAt,
       updatedAt: latest.updatedAt,
@@ -103,6 +112,16 @@ export class DescriptionsService {
     dto: CreateDescriptionDto,
     actorId: number | null = null,
   ): Promise<Description> {
+    if (dto.name !== undefined) {
+      const clash = await this.prisma.description.findFirst({
+        where: { name: dto.name },
+        select: { id: true },
+      });
+      if (clash) {
+        throw new ConflictException(`Description ${dto.name} already exists`);
+      }
+    }
+
     const languages = await this.prisma.language.findMany({
       select: { code: true },
       orderBy: { code: 'asc' },
@@ -134,6 +153,7 @@ export class DescriptionsService {
       data: codes.map((language) => ({
         id,
         language,
+        name: dto.name ?? null,
         text: dto.translations[language],
         ...(actorId === null ? {} : { createdBy: actorId }),
       })),
@@ -166,8 +186,33 @@ export class DescriptionsService {
       );
     }
 
-    await this.prisma.$transaction(
-      Object.entries(dto.translations ?? {}).map(([language, text]) =>
+    if (dto.name !== undefined) {
+      const clash = await this.prisma.description.findFirst({
+        where: { name: dto.name, id: { not: id } },
+        select: { id: true },
+      });
+      if (clash) {
+        throw new ConflictException(`Description ${dto.name} already exists`);
+      }
+    }
+
+    const updates: Prisma.PrismaPromise<unknown>[] = [];
+
+    // The name identifies the whole group, so it is written to every row.
+    if (dto.name !== undefined) {
+      updates.push(
+        this.prisma.description.updateMany({
+          where: { id },
+          data: {
+            name: dto.name,
+            ...(actorId === null ? {} : { updatedBy: actorId }),
+          },
+        }),
+      );
+    }
+
+    for (const [language, text] of Object.entries(dto.translations ?? {})) {
+      updates.push(
         this.prisma.description.update({
           where: { id_language: { id, language } },
           data: {
@@ -175,8 +220,10 @@ export class DescriptionsService {
             ...(actorId === null ? {} : { updatedBy: actorId }),
           },
         }),
-      ),
-    );
+      );
+    }
+
+    if (updates.length > 0) await this.prisma.$transaction(updates);
 
     return this.findOne(id);
   }
