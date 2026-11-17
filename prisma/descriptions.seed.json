@@ -59,6 +59,18 @@
     "en": "Go to search",
     "hr": "Idi na pretraživanje"
   },
+  "topbar.addListing": {
+    "en": "Add listing",
+    "hr": "Dodaj oglas"
+  },
+  "topbar.signInToPublish": {
+    "en": "Please sign in to publish",
+    "hr": "Prijavite se da objavite oglas"
+  },
+  "topbar.signInToPublishBody": {
+    "en": "You need to be signed in to create a listing.",
+    "hr": "Morate biti prijavljeni da biste kreirali oglas."
+  },
   "login.aria": {
     "en": "Log in",
     "hr": "Prijava"
@@ -158,6 +170,22 @@
   "search.title": {
     "en": "Search kiosk",
     "hr": "Pretraži kiosk"
+  },
+  "search.regionTitle": {
+    "en": "Search {region}",
+    "hr": "Pretraga: {region}"
+  },
+  "search.allRegionsTitle": {
+    "en": "Search all regions",
+    "hr": "Pretraga svih regija"
+  },
+  "region.choose": {
+    "en": "Choose region",
+    "hr": "Odaberite regiju"
+  },
+  "region.all": {
+    "en": "All regions",
+    "hr": "Sve regije"
   },
   "search.placeholder": {
     "en": "Search listings…",

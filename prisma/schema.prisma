@@ -31,6 +31,24 @@ enum Orientation {
   sell
 }
 
+/// A country a listing belongs to. `id = 0` is the "All regions" row used when
+/// the visitor's country cannot be detected or no region filter is wanted.
+model Region {
+  id            Int @id @default(autoincrement())
+  /// ISO 3166-1 alpha-2 code; `ALL` for the global row.
+  code          String @unique
+  descriptionId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy Int?
+  updatedBy Int?
+
+  listings Listing[]
+
+  @@index([descriptionId])
+}
+
 /// A language the interface and description texts are available in.
 model Language {
   code String @id
@@ -70,6 +88,8 @@ model User {
 model Listing {
   id          Int         @id @default(autoincrement())
   categoryId  Int
+  /// Region the listing is published in; 0 means "no specific region".
+  regionId    Int         @default(0)
   orientation Orientation
   userId      Int
   isActive    Boolean     @default(true)
@@ -82,12 +102,14 @@ model Listing {
   updatedBy Int?
 
   category             Category              @relation(fields: [categoryId], references: [id])
+  region               Region                @relation(fields: [regionId], references: [id])
   facetValueSelections FacetValueSelection[]
   chatThreads          ListingChatThread[]
   images               ListingImage[]
   translations         ListingTranslation[]
 
   @@index([categoryId])
+  @@index([regionId])
   @@index([userId])
 }
 

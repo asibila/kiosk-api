@@ -15,6 +15,7 @@ function createService() {
     {
       id: 10,
       categoryId: 2,
+      regionId: 0,
       orientation: 'sell' as const,
       userId: 1,
       isActive: true,
@@ -26,6 +27,7 @@ function createService() {
     {
       id: 11,
       categoryId: 2,
+      regionId: 0,
       orientation: 'buy' as const,
       userId: 2,
       isActive: true,

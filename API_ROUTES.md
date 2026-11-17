@@ -31,11 +31,13 @@ AI agents and humans integrating with the API.
 | `GET` | `/users/:id` | – | `200` user | `404` if missing |
 | `PATCH` | `/users/:id` | `UpdateUserDto` | `200` user | any subset of fields; `password` re-hashed |
 | `DELETE` | `/users/:id` | – | `204` empty | `404` if missing |
-| `POST` | `/listings` | `CreateListingDto` | `201` listing | `isActive` defaults to `true`; drafts pass `false` |
+| `POST` | `/listings` | `CreateListingDto` | `201` listing | `isActive` defaults to `true`; drafts pass `false`; `regionId` defaults to `0` (all regions) |
 | `GET` | `/listings` | - | `200` listing[] | ordered by `id` |
 | `GET` | `/listings/:id` | - | `200` listing | `404` if missing |
 | `PATCH` | `/listings/:id` | `UpdateListingDto` | `200` listing | |
 | `DELETE` | `/listings/:id` | - | `204` empty | `404` if missing |
+| `GET` | `/regions` | - | `200` region[] | ordered by `id`; id `0` is "All regions" |
+| `GET` | `/regions/detect` | - | `200` `{ regionId, countryCode }` | from the request IP; `regionId: 0` when unknown |
 | `POST` | `/listing-translations` | `UpsertListingTranslationDto` | `201` translation | upserts on `(listingId, language)` |
 | `GET` | `/listing-translations` | optional `?listingId=` | `200` translation[] | ordered by listing, language |
 | `GET` | `/listing-translations/:listingId/:language` | - | `200` translation | `404` if missing |
@@ -171,14 +173,16 @@ Source: `src/listings/listings.controller.ts`, `src/listings/listings.service.ts
 | Field | Type | Required | Constraints |
 | --- | --- | --- | --- |
 | `categoryId` | int | yes | FK → `categories.id` (must exist) |
+| `regionId` | int | no | FK → `regions.id`; defaults to `0`, the "All regions" row |
 | `orientation` | enum | yes | `"buy"` or `"sell"` |
 | `userId` | int | yes | plain integer (not a FK), semantically a user id |
 | `isActive` | boolean | no | defaults to `true`; the wizard creates drafts with `false` and Publish sets `true` |
 | `price` | number \| null | no | nullable float, the answer to the price question |
 | `year` | int \| null | no | nullable integer, the answer to the year question |
 
-Response: `id`, `categoryId`, `orientation`, `userId`, `isActive`, `price`,
-`year`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `facetsCount`.
+Response: `id`, `categoryId`, `regionId`, `orientation`, `userId`, `isActive`,
+`price`, `year`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`,
+`facetsCount`.
 
 `facetsCount` is the number of answered interview questions: the listing's
 `FacetValueSelection` rows plus `1` for orientation and `1` when `price` is not
@@ -236,6 +240,29 @@ category. It has no row in the database and cannot be updated or deleted. `GET
 Notes: deleting a category with child categories sets their `parentCategoryId`
 to `null` (`SetNull`); deleting one still referenced by a listing or facet schema
 returns `400`.
+
+### `/regions` — Region
+Source: `src/regions/regions.controller.ts`, `src/regions/regions.service.ts`
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | int | `0` is the global "All regions" row |
+| `code` | string | ISO 3166-1 alpha-2, or `ALL` for id `0` |
+| `descriptionId` | int | name in each language, stored like category descriptions |
+
+The table is seeded by the `add_regions` migration with the EU member states and
+the ex-Yugoslav countries outside the EU (Bosnia and Herzegovina, Serbia,
+Montenegro). Listings carry `regionId`; `0` means the listing has no specific
+region (existing rows and listings created while "All regions" is selected).
+
+`GET /regions/detect` reads the visitor's address from `x-forwarded-for`
+(`x-real-ip` and `cf-connecting-ip` are also accepted) and maps its ISO country
+code to a region. Private addresses, unknown countries and failed geo lookups
+return `{ "regionId": 0, "countryCode": null }`. The geo provider is
+`api.country.is` by default; `GEO_LOOKUP_URL` overrides it and may contain
+`{ip}`. The response can be a bare country code or JSON with `country`,
+`country_code` or `countryCode`. Results are cached in memory for six hours; IP
+addresses are never stored.
 
 ### `/descriptions` — Description
 Source: `src/descriptions/descriptions.controller.ts`, `src/descriptions/descriptions.service.ts`

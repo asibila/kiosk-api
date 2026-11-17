@@ -9,6 +9,7 @@ import type { UpdateListingDto } from './dto/update-listing.dto.js';
 const listingSelect = {
   id: true,
   categoryId: true,
+  regionId: true,
   orientation: true,
   userId: true,
   isActive: true,

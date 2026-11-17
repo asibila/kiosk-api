@@ -19,6 +19,7 @@ import { ListingTranslationsModule } from './listing-translations/listing-transl
 import { ListingsModule } from './listings/listings.module.js';
 import { ListingChatThreadsModule } from './listing-chat-threads/listing-chat-threads.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { RegionsModule } from './regions/regions.module.js';
 import { SuggestionsModule } from './suggestions/suggestions.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -39,6 +40,7 @@ import { UsersModule } from './users/users.module.js';
     ListingChatThreadsModule,
     InboxItemsModule,
     LanguagesModule,
+    RegionsModule,
     FacetSchemasModule,
     FacetValueOptionsModule,
     FacetValueSelectionsModule,

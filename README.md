@@ -143,7 +143,7 @@ CRUD controller per entity. Every resource has the same endpoints:
 
 | Resource | Body |
 | --- | --- |
-| `/listings` | `categoryId`, `orientation` (`buy` or `sell`), `userId`, optional `isActive` |
+| `/listings` | `categoryId`, `regionId` (optional, default `0`), `orientation` (`buy` or `sell`), `userId`, optional `isActive` |
 | `/listing-translations` | `listingId`, `language`, `title` (upsert per language) |
 | `/categories` | `descriptionId`, `parentCategoryId` (nullable) |
 | `/descriptions` | `{ translations: { en, hr } }` (both language texts; update accepts a subset) |
@@ -174,9 +174,19 @@ the `(id, language)` primary key — so there is no DB-level constraint).
 Descriptions with a non-null `name` are interface strings. The name is the React
 i18n key (`common.close`) and is unique per language (`(name, language)`). The
 frontend loads them from `GET /descriptions` at startup and builds its
-dictionaries from the `translations` map; the 223 current keys are inserted by
+dictionaries from the `translations` map; the 233 current keys are inserted by
 `npm run prisma:seed` after applying migrations. Entity
 descriptions for categories and facets leave `name` null.
+
+`Region` is a small seeded table: id `0` is "All regions", the other rows are
+the EU member states plus Bosnia and Herzegovina, Serbia and Montenegro, each
+with a translated name stored like a category description. Listings reference a
+region through `Listing.regionId`. `GET /regions` returns the rows ordered by
+id; `GET /regions/detect` resolves the caller's country from the request IP
+(`x-forwarded-for` and friends) through `api.country.is` (override with
+`GEO_LOOKUP_URL`), caches the answer in memory for six hours, and answers
+`{ regionId: 0, countryCode: null }` for private addresses, unknown countries
+or a failed lookup.
 
 The catalog migration associated with the language work also marks `condition`
 as a generic (and required) facet, adds generic orientation, price and year
