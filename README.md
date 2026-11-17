@@ -266,10 +266,10 @@ The API needs a PostgreSQL database in production. On Render:
 1. Create a **Postgres** instance in the same region as the web service.
 2. Set the web service's `DATABASE_URL` to the instance's **Internal Database
    URL** (it already includes `sslmode=require`).
-3. Deploy. `npm run start:prod` runs `prisma migrate deploy` and then starts the
-   server, so the schema and seeded languages are created automatically. Run
-   `npm run prisma:seed` once (from the deploy shell or a release step) to insert
-   the interface descriptions.
+3. Deploy. `npm run start:prod` runs `prisma migrate deploy`, inserts any
+   missing interface descriptions with `prisma/seed.mjs`, and then starts the
+   server, so the schema, seeded languages and UI strings are created on every
+   start. The seed is insert-only, so database edits to existing keys survive.
 
 Beyond the seeded languages and UI descriptions, the database starts empty, so
 create categories, facets and listings through the API before expecting search
