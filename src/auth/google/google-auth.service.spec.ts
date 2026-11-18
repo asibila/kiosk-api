@@ -215,3 +215,71 @@ describe('GoogleAuthService', () => {
     await expect(service.signIn(profile)).resolves.toMatchObject({ status: 'signed-in' });
   });
 });
+
+describe('GoogleAuthService.linkToAccount', () => {
+  const account = { id: 7, email: 'pero@example.com' };
+
+  function createLinkService({
+    bySub = null as null | { userId: number },
+    byUser = null as null | { providerAccountId: string },
+  } = {}) {
+    const prisma = {
+      oAuthAccount: {
+        findUnique: vi.fn(async ({ where }: { where: Record<string, unknown> }) =>
+          'provider_providerAccountId' in where ? bySub : byUser,
+        ),
+        create: vi.fn(async () => ({ id: 1 })),
+        count: vi.fn(async () => (bySub ? 1 : 0)),
+      },
+    };
+    const config = { get: () => 'value' } as unknown as ConfigService;
+
+    return new GoogleAuthService(
+      config,
+      prisma as unknown as PrismaService,
+      { createSocial: vi.fn() } as unknown as UsersService,
+    );
+  }
+
+  it('links a matching Google identity', async () => {
+    const service = createLinkService();
+
+    await expect(service.linkToAccount(account, profile)).resolves.toBe('linked');
+  });
+
+  it('is idempotent when the identity is already linked', async () => {
+    const service = createLinkService({ bySub: { userId: account.id } });
+
+    await expect(service.linkToAccount(account, profile)).resolves.toBe(
+      'already-linked',
+    );
+  });
+
+  it('refuses a Google identity that belongs to someone else', async () => {
+    const service = createLinkService({ bySub: { userId: 999 } });
+
+    await expect(service.linkToAccount(account, profile)).resolves.toBe('google-taken');
+  });
+
+  it('refuses when the account already has a different Google identity', async () => {
+    const service = createLinkService({ byUser: { providerAccountId: 'other-sub' } });
+
+    await expect(service.linkToAccount(account, profile)).resolves.toBe('google-taken');
+  });
+
+  it('refuses when the emails do not match', async () => {
+    const service = createLinkService();
+
+    await expect(
+      service.linkToAccount({ id: 7, email: 'someone-else@example.com' }, profile),
+    ).resolves.toBe('email-mismatch');
+  });
+
+  it('refuses an unverified Google email', async () => {
+    const service = createLinkService();
+
+    await expect(
+      service.linkToAccount(account, { ...profile, emailVerified: false }),
+    ).resolves.toBe('email-mismatch');
+  });
+});

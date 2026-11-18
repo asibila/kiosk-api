@@ -7,7 +7,13 @@ export const OAUTH_STATE_COOKIE = 'kiosk_oauth_state';
 /** Ten minutes is plenty for the consent screen. */
 export const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
-export type OAuthState = { state: string; from: string };
+export type OAuthState = {
+  state: string;
+  from: string;
+  /** Set when the flow was started from the profile to link a provider. */
+  link?: boolean;
+  userId?: number;
+};
 
 function encode(value: OAuthState): string {
   return Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
@@ -18,9 +24,16 @@ function decode(raw: string): OAuthState | null {
     const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as {
       state?: unknown;
       from?: unknown;
+      link?: unknown;
+      userId?: unknown;
     };
     if (typeof parsed.state !== 'string' || typeof parsed.from !== 'string') return null;
-    return { state: parsed.state, from: parsed.from };
+    return {
+      state: parsed.state,
+      from: parsed.from,
+      link: parsed.link === true,
+      userId: typeof parsed.userId === 'number' ? parsed.userId : undefined,
+    };
   } catch {
     return null;
   }

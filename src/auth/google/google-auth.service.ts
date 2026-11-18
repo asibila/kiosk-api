@@ -194,6 +194,57 @@ export class GoogleAuthService {
   }
 
   /**
+   * Link a Google identity to the signed-in account (started from the profile).
+   * The Google email must match the account email, and one Google identity can
+   * only belong to one account. Returns a result the controller turns into a
+   * redirect parameter; it never throws for a policy refusal.
+   */
+  async linkToAccount(
+    user: { id: number; email: string },
+    profile: GoogleProfile,
+  ): Promise<'linked' | 'already-linked' | 'email-mismatch' | 'google-taken'> {
+    if (!profile.emailVerified) return 'email-mismatch';
+    if (profile.email.trim().toLowerCase() !== user.email.trim().toLowerCase()) {
+      return 'email-mismatch';
+    }
+
+    const existing = await this.prisma.oAuthAccount.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: PROVIDER,
+          providerAccountId: profile.sub,
+        },
+      },
+      select: { userId: true },
+    });
+
+    if (existing) {
+      return existing.userId === user.id ? 'already-linked' : 'google-taken';
+    }
+
+    const own = await this.prisma.oAuthAccount.findUnique({
+      where: {
+        provider_userId: { provider: PROVIDER, userId: user.id },
+      },
+      select: { providerAccountId: true },
+    });
+    if (own) {
+      return own.providerAccountId === profile.sub ? 'already-linked' : 'google-taken';
+    }
+
+    await this.linkAccount(user.id, profile);
+    return 'linked';
+  }
+
+  /** Whether the signed-in account already has a Google identity. */
+  async isLinked(userId: number): Promise<boolean> {
+    const count = await this.prisma.oAuthAccount.count({
+      where: { userId, provider: PROVIDER },
+    });
+    return count > 0;
+  }
+
+  /**
    * Store the provider link. A concurrent callback can win the unique index, so
    * a duplicate is treated as success (the link exists, which is all we need).
    */

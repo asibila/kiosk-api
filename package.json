@@ -25,6 +25,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "node prisma/seed.mjs",
     "prisma:studio": "prisma studio",
+    "set-password": "node prisma/set-password.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

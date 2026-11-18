@@ -29,8 +29,9 @@ AI agents and humans integrating with the API.
 | --- | --- | --- | --- | --- |
 | `POST` | `/auth/login` | `CreateLoginDto` | `200` user + `Set-Cookie` | `{ email, password }`; `401` invalid credentials or deactivated user; 10/min per IP |
 | `POST` | `/auth/register` | `RegisterDto` | `201` user + `Set-Cookie` | signup: creates a `USER`, sets `User.acceptedTermsAt`, signs in; `409` duplicate email, `400` validation; 5/hour per IP |
-| `GET` | `/auth/google` | `?from=` (local path) | `302` to Google | starts the Google flow; sets a short-lived `kiosk_oauth_state` cookie; `302` to `/login?error=unavailable` when unconfigured |
-| `GET` | `/auth/google/callback` | `?code=&state=` | `302` to the site | finishes the flow: validates state, links/creates the account, sets `kiosk_session`, redirects to `from`; failures redirect to `/login?error=<code>` |
+| `GET` | `/auth/google` | `?from=` (local path), optional `?link=1` | `302` to Google | starts the Google flow; sets a short-lived `kiosk_oauth_state` cookie; `link=1` (needs a session) attaches the identity to the current account instead of signing in |
+| `GET` | `/auth/google/callback` | `?code=&state=` | `302` to the site | finishes the flow: validates state, links/creates the account, sets `kiosk_session`, redirects to `from`; sign-in failures redirect to `/login?error=<code>`, link results to `from?google=connected\|error_*` |
+| `GET` | `/auth/providers` | – | `200` `{ google: boolean }` | signed in: which social identities are attached to the account |
 | `GET` | `/healthz` | – | `200` `{ status: "ok", database: "ok" }` | public; pings the database (Render health check) |
 | `GET` | `/auth/me` | – | `200` user \| empty | public: `null` body when there is no session |
 | `POST` | `/auth/logout` | – | `204` empty | revokes the session row and clears the cookie |
@@ -143,6 +144,11 @@ AI agents and humans integrating with the API.
   - otherwise a `USER` is created (no password hash) and linked.
   Inactive accounts, unverified Google emails and provider errors also redirect
   to `/login?error=<code>`; `from` is limited to local paths.
+- **Connecting Google from the profile** (`GET /auth/google?link=1`): requires a
+  session; the callback links the identity to that account only when the Google
+  email matches the account email and the identity is not linked elsewhere.
+  `GET /auth/providers` tells the profile whether Google is already attached;
+  results come back as `<from>?google=connected|error_email_mismatch|error_google_taken|error_link_failed`.
 - **Admin bootstrap**: on boot, `ADMIN_EMAIL` promotes that account to `ADMIN`
   (creating it when `ADMIN_PASSWORD` is set). Signup always creates `USER` rows,
   so this is how the first admin exists on a fresh deployment.

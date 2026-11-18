@@ -21,6 +21,7 @@ import {
 } from './session-cookie.js';
 import { createLoginSchema, type CreateLoginDto } from './dto/create-login.dto.js';
 import { registerSchema, type RegisterDto } from './dto/register.dto.js';
+import { GoogleAuthService } from './google/google-auth.service.js';
 import { UsersService } from '../users/users.service.js';
 
 @Controller('auth')
@@ -28,7 +29,17 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
+    private readonly googleAuthService: GoogleAuthService,
   ) {}
+
+  /** Which social identities are attached to the signed-in account. */
+  @Get('providers')
+  async providers(
+    @CurrentUser() user: RequestUser | null,
+  ): Promise<{ google: boolean }> {
+    if (!user) return { google: false };
+    return { google: await this.googleAuthService.isLinked(user.id) };
+  }
 
   @Public()
   @Post('login')

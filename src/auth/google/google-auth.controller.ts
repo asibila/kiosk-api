@@ -2,6 +2,7 @@ import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { primaryFrontendOrigin } from '../../common/frontend-origins.js';
+import { CurrentUser, type RequestUser } from '../current-user.decorator.js';
 import { Public } from '../public.decorator.js';
 import {
   SESSION_COOKIE,
@@ -41,8 +42,9 @@ function userAgent(request: Request): string | null {
  * Both are top-level navigations from the browser, so they answer with
  * redirects rather than JSON.
  *
- * The callback always redirects to the site with `?error=<code>` on failure;
- * the login screen turns that into a message.
+ * `?link=1` (started from the profile) attaches the Google identity to the
+ * signed-in account instead of signing in. Failures redirect to the site with
+ * `?google=error_<code>`; the login screen uses `?error=<code>`.
  */
 @Controller('auth/google')
 export class GoogleAuthController {
@@ -56,10 +58,21 @@ export class GoogleAuthController {
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   start(
     @Query('from') from: string | undefined,
+    @Query('link') link: string | undefined,
+    @CurrentUser() user: RequestUser | null,
     @Req() request: Request,
     @Res() response: Response,
   ): void {
     const target = safeReturnPath(from);
+    const linking = link === '1';
+
+    // Linking needs a session; without one the browser goes to the login page.
+    if (linking && !user) {
+      response.redirect(
+        `${frontendOrigin()}/login?error=link_failed&from=${encodeURIComponent(target)}`,
+      );
+      return;
+    }
 
     if (!this.googleAuthService.isConfigured()) {
       response.redirect(
@@ -71,7 +84,11 @@ export class GoogleAuthController {
     const state = this.googleAuthService.newState();
     response.cookie(
       OAUTH_STATE_COOKIE,
-      encodeOAuthState({ state, from: target }),
+      encodeOAuthState({
+        state,
+        from: target,
+        ...(linking && user ? { link: true, userId: user.id } : {}),
+      }),
       oauthStateCookieOptions(),
     );
     response.redirect(
@@ -86,6 +103,7 @@ export class GoogleAuthController {
     @Query('code') code: string | undefined,
     @Query('state') state: string | undefined,
     @Query('error') error: string | undefined,
+    @CurrentUser() user: RequestUser | null,
     @Req() request: Request,
     @Res() response: Response,
   ): Promise<void> {
@@ -93,6 +111,42 @@ export class GoogleAuthController {
     const target = stored?.from ?? '/search';
     response.clearCookie(OAUTH_STATE_COOKIE, { path: '/auth/google' });
 
+    // --- Profile flow: attach Google to the account already signed in --------
+    if (stored?.link) {
+      const sessionMatches = user != null && user.id === stored.userId;
+
+      if (error || !sessionMatches || !state || stored.state !== state || !code) {
+        this.finishLink(
+          response,
+          target,
+          sessionMatches ? (error ? 'error_denied' : 'error_failed') : 'error_link_failed',
+        );
+        return;
+      }
+
+      const profile = await this.googleAuthService.exchangeCode(
+        code,
+        redirectUri(request),
+      );
+      if (!profile) {
+        this.finishLink(response, target, 'error_failed');
+        return;
+      }
+
+      const result = await this.googleAuthService.linkToAccount(user, profile);
+      this.finishLink(
+        response,
+        target,
+        result === 'linked' || result === 'already-linked'
+          ? 'connected'
+          : result === 'email-mismatch'
+            ? 'error_email_mismatch'
+            : 'error_google_taken',
+      );
+      return;
+    }
+
+    // --- Sign-in flow --------------------------------------------------------
     if (error) {
       // `access_denied` means the visitor pressed Cancel on the consent screen.
       this.fail(response, target, error === 'access_denied' ? 'denied' : 'failed');
@@ -131,6 +185,14 @@ export class GoogleAuthController {
     );
     response.cookie(SESSION_COOKIE, token, sessionCookieOptions(sessionTtlMs()));
     response.redirect(`${frontendOrigin()}${target}`);
+  }
+
+  /** Back to the page that started the link, with the outcome in the URL. */
+  private finishLink(response: Response, target: string, result: string): void {
+    const separator = target.includes('?') ? '&' : '?';
+    response.redirect(
+      `${frontendOrigin()}${target}${separator}google=${encodeURIComponent(result)}`,
+    );
   }
 
   private fail(response: Response, target: string, code: string): void {

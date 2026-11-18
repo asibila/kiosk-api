@@ -143,6 +143,34 @@
     "en": "Google sign-in failed. Please try again.",
     "hr": "Prijava putem Googlea nije uspjela. Pokušaj ponovno."
   },
+  "auth.connectGoogle": {
+    "en": "Connect Google",
+    "hr": "Poveži Google"
+  },
+  "auth.googleLinked": {
+    "en": "Connected",
+    "hr": "Povezano"
+  },
+  "auth.connectHint": {
+    "en": "Connect Google to sign in to this account with one click next time. The Google email has to match this account.",
+    "hr": "Poveži Google kako bi se sljedeći put prijavio ovim računom jednim klikom. Google email mora odgovarati ovom računu."
+  },
+  "auth.googleConnected": {
+    "en": "Google is connected to this account.",
+    "hr": "Google je povezan s ovim računom."
+  },
+  "auth.error.emailMismatch": {
+    "en": "That Google account uses a different email. Choose the Google account that matches this account.",
+    "hr": "Taj Google račun ima drugi email. Odaberi Google račun koji odgovara ovom računu."
+  },
+  "auth.error.googleTaken": {
+    "en": "That Google account is already linked to another user.",
+    "hr": "Taj je Google račun već povezan s drugim korisnikom."
+  },
+  "auth.error.linkFailed": {
+    "en": "Connecting Google failed. Sign in again and retry.",
+    "hr": "Povezivanje Googlea nije uspjelo. Prijavi se ponovno i pokušaj opet."
+  },
   "signup.aria": {
     "en": "Create an account",
     "hr": "Stvaranje računa"
