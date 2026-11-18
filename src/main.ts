@@ -10,7 +10,10 @@ const DEFAULT_FRONTEND_ORIGINS = [
   'https://localhost:5173',
   'http://localhost:4173',
   'https://localhost:4173',
+  // Legacy static site (kept while the SSR web service is verified).
   'https://kiosk-9j6p.onrender.com',
+  // SSR web service (`node server.js`).
+  'https://kiosk-ssr.onrender.com',
 ];
 
 const frontendOrigins = (process.env.FRONTEND_ORIGINS ?? '')
