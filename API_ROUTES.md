@@ -590,10 +590,15 @@ Source: `src/listing-chat-threads/listing-chat-threads.controller.ts`, `src/list
 | `listingId` | int | yes | FK → `listings.id` |
 | `chatThreadId` | int | yes | FK → `chat-threads.id`, **unique** (one link per thread) |
 
-Response: `id`, `listingId`, `chatThreadId`, `hasUnread`, `createdAt`, `updatedAt`,
-`createdBy`, `updatedBy`. `hasUnread` drives the red unread badge on the
-drawer chat row under the listing. `PATCH /listing-chat-threads/:id` accepts
-`hasUnread` (boolean) to mark the conversation read.
+Response: `id`, `listingId`, `chatThreadId`, `userId`, `hasUnread`, `createdAt`,
+`updatedAt`, `createdBy`, `updatedBy`. `userId` is **required** and set by the
+server to the authenticated thread creator (the person who pressed *Contact
+seller*); `(userId, listingId)` is **unique**, so a user has exactly one
+conversation per listing and `POST` returns the existing link when contacted
+again (also when two requests race). `hasUnread` drives the red unread badge on
+the owner's conversation list.
+`PATCH /listing-chat-threads/:id` accepts `hasUnread` (boolean) to mark the
+conversation read.
 
 ### `/inbox-items` — InboxItem
 Source: `src/inbox-items/inbox-items.controller.ts`, `src/inbox-items/inbox-items.service.ts`

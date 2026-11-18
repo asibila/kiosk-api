@@ -319,11 +319,15 @@ model ChatThread {
   inboxItem   InboxItem?
 }
 
-/// Attaches a chat thread to the listing it is about.
+/// Attaches a chat thread to the listing it is about. `userId` is the person
+/// who initiated the contact (the thread creator), so the owner can see one
+/// conversation per interested user. A user has at most one conversation per
+/// listing, enforced by the `(userId, listingId)` unique key.
 model ListingChatThread {
   id           Int @id @default(autoincrement())
   listingId    Int
   chatThreadId Int @unique
+  userId       Int
   hasUnread    Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -334,6 +338,7 @@ model ListingChatThread {
   listing    Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
   chatThread ChatThread @relation(fields: [chatThreadId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, listingId])
   @@index([listingId])
 }
 

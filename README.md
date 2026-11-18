@@ -162,7 +162,7 @@ CRUD controller per entity. Every resource has the same endpoints:
 | `/languages` | read-only: `GET /languages`, `GET /languages/:code` (`en`, `hr`) |
 | `/chat-messages` | `text` (max 225), `threadId`, `userId` (id of the user which created the message) | `201` created row |
 | `/chat-threads` | - (no fields) |
-| `/listing-chat-threads` | `listingId`, `chatThreadId` |
+| `/listing-chat-threads` | `listingId`, `chatThreadId`; the server stores the required `userId` = the authenticated thread creator, and `(userId, listingId)` is unique (contacting again reuses the link) |
 | `/inbox-items` | `userId`, `chatThreadId` |
 | `/facet-schemas` | `descriptionId`, `name` (max 225), `categoryId`, `isGeneric` (default false), `type` (`option` or `numeric`), `required` (default false) |
 | `/facet-value-options` | `descriptionId`, `schemaId` |

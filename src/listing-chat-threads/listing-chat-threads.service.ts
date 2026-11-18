@@ -3,7 +3,10 @@ import { Prisma } from '@prisma/client';
 import { auditSelect } from '../audit/audit-select.js';
 import type { RequestUser } from '../auth/current-user.decorator.js';
 import { AccessService } from '../common/access.service.js';
-import { rethrowPrismaError } from '../common/prisma-errors.js';
+import {
+  isUniqueConstraintError,
+  rethrowPrismaError,
+} from '../common/prisma-errors.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateListingChatThreadDto } from './dto/create-listing-chat-thread.dto.js';
 import type { UpdateListingChatThreadDto } from './dto/update-listing-chat-thread.dto.js';
@@ -12,6 +15,7 @@ const listingChatThreadSelect = {
   id: true,
   listingId: true,
   chatThreadId: true,
+  userId: true,
   hasUnread: true,
   ...auditSelect,
 } satisfies Prisma.ListingChatThreadSelect;
@@ -56,19 +60,39 @@ export class ListingChatThreadsService {
     return this.readRow(id);
   }
 
-  /** Only the creator of a thread may attach it to a listing. */
+  /**
+   * Only the creator of a thread may attach it to a listing. The creator is
+   * also the person who initiated the contact, stored as `userId` so the
+   * listing owner gets one conversation per interested user.
+   *
+   * A user has at most one conversation per listing (`userId`, `listingId`),
+   * so contacting the same listing again reuses the existing link instead of
+   * creating a second one.
+   */
   async create(
     dto: CreateListingChatThreadDto,
     user: RequestUser,
   ): Promise<ListingChatThread> {
     await this.access.assertThreadCreator(user, dto.chatThreadId);
 
+    const existing = await this.findByUserAndListing(user.id, dto.listingId);
+    if (existing) return existing;
+
     try {
       return await this.prisma.listingChatThread.create({
-        data: { ...dto, createdBy: user.id },
+        data: { ...dto, userId: user.id, createdBy: user.id },
         select: listingChatThreadSelect,
       });
     } catch (error) {
+      // Two simultaneous contacts can race past the lookup above. The unique
+      // key then decides and the loser reuses the winner's conversation.
+      if (isUniqueConstraintError(error)) {
+        const concurrent = await this.findByUserAndListing(
+          user.id,
+          dto.listingId,
+        );
+        if (concurrent) return concurrent;
+      }
       rethrowPrismaError(error, 'ListingChatThread');
     }
   }
@@ -122,6 +146,17 @@ export class ListingChatThreadsService {
     });
     if (!link) throw new NotFoundException(`ListingChatThread ${id} not found`);
     return link;
+  }
+
+  /** The one conversation a user has with a listing, if any. */
+  private findByUserAndListing(
+    userId: number,
+    listingId: number,
+  ): Promise<ListingChatThread | null> {
+    return this.prisma.listingChatThread.findUnique({
+      where: { userId_listingId: { userId, listingId } },
+      select: listingChatThreadSelect,
+    });
   }
 
   private async readRow(id: number): Promise<ListingChatThread> {
