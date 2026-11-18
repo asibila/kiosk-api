@@ -1063,6 +1063,14 @@
     "en": "Buyers can find it in the marketplace right away.",
     "hr": "Kupci ga odmah mogu pronaći na tržnici."
   },
+  "dashboard.title": {
+    "en": "Your seller overview",
+    "hr": "Pregled tvojih oglasa"
+  },
+  "dashboard.subtitle": {
+    "en": "Views, contacts and the next steps for your newest ad.",
+    "hr": "Pregledi, kontakti i sljedeći koraci za tvoj najnoviji oglas."
+  },
   "publish.viewListing": {
     "en": "View listing",
     "hr": "Pogledaj oglas"
@@ -1278,6 +1286,18 @@
   "empty.noCategories": {
     "en": "The backend has no categories, so there is nothing to interview yet.",
     "hr": "Poslužitelj nema kategorija pa još nema što intervjuirati."
+  },
+  "empty.signedInTitle": {
+    "en": "No ads yet",
+    "hr": "Još nema oglasa"
+  },
+  "empty.signedInBody": {
+    "en": "Publish your first ad and its views, contacts and next steps will show up here.",
+    "hr": "Objavi svoj prvi oglas i ovdje će se prikazati pregledi, kontakti i sljedeći koraci."
+  },
+  "empty.publishFirst": {
+    "en": "Publish your first ad",
+    "hr": "Objavi prvi oglas"
   },
   "notice.imageUploadFailed": {
     "en": "Image upload failed: {message}",
