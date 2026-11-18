@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Logger, Query, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { primaryFrontendOrigin } from '../../common/frontend-origins.js';
@@ -48,6 +48,8 @@ function userAgent(request: Request): string | null {
  */
 @Controller('auth/google')
 export class GoogleAuthController {
+  private readonly logger = new Logger(GoogleAuthController.name);
+
   constructor(
     private readonly googleAuthService: GoogleAuthService,
     private readonly authService: AuthService,
@@ -116,6 +118,10 @@ export class GoogleAuthController {
       const sessionMatches = user != null && user.id === stored.userId;
 
       if (error || !sessionMatches || !state || stored.state !== state || !code) {
+        this.logger.warn(
+          `Google link rejected (user=${user?.id ?? 'guest'}, session=${sessionMatches}, ` +
+            `state=${stored.state === state}, code=${Boolean(code)}, error=${error ?? 'none'})`,
+        );
         this.finishLink(
           response,
           target,
@@ -129,11 +135,13 @@ export class GoogleAuthController {
         redirectUri(request),
       );
       if (!profile) {
+        this.logger.warn(`Google link token exchange failed for user=${user.id}`);
         this.finishLink(response, target, 'error_failed');
         return;
       }
 
       const result = await this.googleAuthService.linkToAccount(user, profile);
+      this.logger.log(`Google link ${result} for user=${user.id}`);
       this.finishLink(
         response,
         target,
