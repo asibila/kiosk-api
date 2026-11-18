@@ -783,13 +783,113 @@
     "en": "Deleting…",
     "hr": "Brisanje…"
   },
-  "report.title": {
-    "en": "Listing created",
-    "hr": "Oglas stvoren"
+  "publish.aria": {
+    "en": "Listing published",
+    "hr": "Oglas objavljen"
   },
-  "report.body": {
-    "en": "Listing created, thank you for using kiosk.",
-    "hr": "Oglas je stvoren, hvala što koristite kiosk."
+  "publish.title": {
+    "en": "Your ad is live",
+    "hr": "Tvoj oglas je objavljen"
+  },
+  "publish.subtitle": {
+    "en": "Buyers can find it in the marketplace right away.",
+    "hr": "Kupci ga odmah mogu pronaći na tržnici."
+  },
+  "publish.viewListing": {
+    "en": "View listing",
+    "hr": "Pogledaj oglas"
+  },
+  "publish.publishAnother": {
+    "en": "Publish another",
+    "hr": "Objavi još jedan"
+  },
+  "publish.backToSearch": {
+    "en": "Back to search",
+    "hr": "Natrag na pretragu"
+  },
+  "publish.checklistTitle": {
+    "en": "Make it stand out",
+    "hr": "Istakni oglas"
+  },
+  "publish.fix": {
+    "en": "Finish",
+    "hr": "Dovrši"
+  },
+  "publish.check.photos": {
+    "en": "Add at least one photo",
+    "hr": "Dodaj barem jednu sliku"
+  },
+  "publish.check.photosDone": {
+    "en": "The ad has a photo",
+    "hr": "Oglas ima sliku"
+  },
+  "publish.check.titles": {
+    "en": "Add titles in every language",
+    "hr": "Dodaj naslove na svim jezicima"
+  },
+  "publish.check.titlesDone": {
+    "en": "Titles exist in every language",
+    "hr": "Naslovi postoje na svim jezicima"
+  },
+  "publish.check.questions.one": {
+    "en": "Answer 1 more question",
+    "hr": "Odgovori još 1 pitanje"
+  },
+  "publish.check.questions.many": {
+    "en": "Answer {count} more questions",
+    "hr": "Odgovori još {count} pitanja"
+  },
+  "publish.check.questionsDone": {
+    "en": "Every question is answered",
+    "hr": "Sva pitanja su odgovorena"
+  },
+  "stats.aria": {
+    "en": "Your statistics",
+    "hr": "Tvoja statistika"
+  },
+  "stats.activeAds": {
+    "en": "Active ads",
+    "hr": "Aktivni oglasi"
+  },
+  "stats.contacts": {
+    "en": "Contacts",
+    "hr": "Kontakti"
+  },
+  "stats.unread": {
+    "en": "Unread",
+    "hr": "Nepročitano"
+  },
+  "stats.chartTitle": {
+    "en": "Contacts, last {days} days",
+    "hr": "Kontakti, zadnjih {days} dana"
+  },
+  "stats.chartAria": {
+    "en": "{count} contacts in the last {days} days",
+    "hr": "{count} kontakata u zadnjih {days} dana"
+  },
+  "stats.noContacts": {
+    "en": "No contacts yet. Ads with photos and complete answers get asked about more often.",
+    "hr": "Još nema kontakata. Oglasi sa slikama i potpunim odgovorima češće dobiju upit."
+  },
+  "stats.priceTitle": {
+    "en": "Price in {category}",
+    "hr": "Cijena u kategoriji {category}"
+  },
+  "stats.priceAria": {
+    "en": "Your price {price}, between {min} and {max}",
+    "hr": "Tvoja cijena {price}, između {min} i {max}"
+  },
+  "stats.priceMedian": {
+    "en": "Median {price}",
+    "hr": "Medijan {price}"
+  },
+  "stats.priceCount.one": {
+    "en": "{count} similar ad",
+    "hr": "{count} sličan oglas"
+  },
+  "stats.priceCount.many": {
+    "en": "{count} similar ads",
+    "hr": "{count} sličnih oglasa"
   },
   "settings.title": {
     "en": "Settings",
