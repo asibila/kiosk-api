@@ -124,10 +124,42 @@ model Listing {
   chatThreads          ListingChatThread[]
   images               ListingImage[]
   translations         ListingTranslation[]
+  events               ListingEvent[]
 
   @@index([categoryId])
   @@index([regionId])
   @@index([userId])
+}
+
+/// What happened on a listing page. `view` is recorded by the beacon on the
+/// listing page; `contact` and `share` are reserved for later surfaces.
+enum ListingEventType {
+  view
+  contact
+  share
+}
+
+/// One counted interaction with a listing, deduplicated per visitor and day by
+/// the unique index (a refresh does not inflate the number). `visitorId` is a
+/// random cookie value, never an IP or a session token.
+model ListingEvent {
+  id        Int              @id @default(autoincrement())
+  listingId Int
+  type      ListingEventType @default(view)
+  visitorId String
+  /// UTC day bucket: one row per visitor, type and listing per day.
+  day       DateTime         @db.Date
+  /// Where the visit started (`search`, `direct`, ...), bounded by the DTO.
+  source    String?
+  language  String?
+
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, type, visitorId, day])
+  @@index([listingId, day])
+  @@index([day])
 }
 
 /// A listing's title in one language. A draft is created with the UI language's

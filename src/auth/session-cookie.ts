@@ -12,6 +12,15 @@ export function sessionTtlMs(): number {
   return Number.isFinite(days) && days > 0 ? days * DAY_MS : 7 * DAY_MS;
 }
 
+/** True when the API runs on a deployed HTTPS origin (Render or NODE_ENV). */
+export function isProductionRuntime(): boolean {
+  return (
+    process.env.NODE_ENV === 'production' ||
+    process.env.RENDER === 'true' ||
+    Boolean(process.env.RENDER_SERVICE_ID)
+  );
+}
+
 /**
  * Cookie flags. The deployed frontend and API are different origins, so
  * production defaults to `SameSite=None` (needed for cross-site `fetch`
@@ -20,10 +29,7 @@ export function sessionTtlMs(): number {
  */
 export function sessionCookieOptions(maxAge: number): CookieOptions {
   const configured = process.env.SESSION_COOKIE_SAMESITE?.trim().toLowerCase();
-  const production =
-    process.env.NODE_ENV === 'production' ||
-    process.env.RENDER === 'true' ||
-    Boolean(process.env.RENDER_SERVICE_ID);
+  const production = isProductionRuntime();
   const sameSite =
     configured === 'strict' || configured === 'lax' || configured === 'none'
       ? configured

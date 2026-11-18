@@ -891,6 +891,34 @@
     "en": "{count} similar ads",
     "hr": "{count} sličnih oglasa"
   },
+  "stats.viewsShort": {
+    "en": "Views",
+    "hr": "Pregledi"
+  },
+  "stats.viewsWindow": {
+    "en": "Views, last {days} days",
+    "hr": "Pregledi, zadnjih {days} dana"
+  },
+  "listing.statsAria": {
+    "en": "Listing statistics",
+    "hr": "Statistika oglasa"
+  },
+  "listing.views.one": {
+    "en": "{count} view",
+    "hr": "{count} pregled"
+  },
+  "listing.views.many": {
+    "en": "{count} views",
+    "hr": "{count} pregleda"
+  },
+  "listing.contacts.one": {
+    "en": "{count} contact",
+    "hr": "{count} kontakt"
+  },
+  "listing.contacts.many": {
+    "en": "{count} contacts",
+    "hr": "{count} kontakata"
+  },
   "settings.title": {
     "en": "Settings",
     "hr": "Postavke"

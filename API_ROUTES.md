@@ -38,6 +38,8 @@ AI agents and humans integrating with the API.
 | `GET` | `/listings/:id` | - | `200` listing | `404` for another user's draft |
 | `PATCH` | `/listings/:id` | `UpdateListingDto` | `200` listing | owner or admin only |
 | `DELETE` | `/listings/:id` | - | `204` empty | owner or admin only |
+| `POST` | `/listings/:id/view` | `CreateListingViewDto` | `204` empty | public beacon: deduped per visitor and UTC day; ignores bots, prefetches, drafts and the owner; sets `kiosk_visitor` |
+| `GET` | `/listings/:id/stats` | optional `?days=` (1–90, default 14) | `200` listing stats | owner or admin: per-day views, all-time views, contacts, contact rate |
 | `GET` | `/regions` | - | `200` region[] | ordered by `id`; id `0` is "All regions" |
 | `GET` | `/regions/detect` | - | `200` `{ regionId, countryCode }` | from the request IP; `regionId: 0` when unknown |
 | `POST` | `/listing-translations` | `UpsertListingTranslationDto` | `201` translation | upserts on `(listingId, language)` |
@@ -112,7 +114,8 @@ AI agents and humans integrating with the API.
   rows), `/listing-translations`, `/listing-images` (including `/file`),
   `/categories`, `/descriptions`, `/languages`, `/regions`,
   `/facet-schemas`, `/facet-value-options`, `/facet-value-selections`,
-  `/suggest`, and `POST /users` (registration; role forced to `USER`).
+  `/suggest`, `POST /users` (registration; role forced to `USER`), and
+  `POST /listings/:id/view` (the statistics beacon).
 - **Ownership**: listing writes, translations, images and facet selections are
   limited to the listing owner (admins bypass). Drafts are only visible to their
   owner and return `404` to everyone else.
@@ -215,6 +218,45 @@ Response: `id`, `categoryId`, `regionId`, `orientation`, `userId`, `isActive`,
 `FacetValueSelection` rows plus `1` for orientation and `1` when `price` is not
 null and `1` when `year` is not null. Brand-new listings therefore start at `1`
 (orientation is required).
+
+### `/listings/:id/view` and `/listings/:id/stats` — ListingEvent
+Source: `src/listing-events/listing-events.controller.ts`,
+`src/listing-events/listing-events.service.ts`
+
+`POST /listings/:id/view` is the public beacon fired by the listing page. The
+body is optional (`{ "source": "search", "language": "hr" }`, both validated).
+It answers `204` and never throws for an ignored request.
+
+Ignored requests:
+
+- known crawlers, link-preview bots, Lighthouse, uptime monitors (`User-Agent`);
+- `Sec-Purpose` / `Purpose` / `X-Purpose` containing
+  `prefetch`, `prerender` or `preview`;
+- unknown or unpublished (draft) listings;
+- the listing owner's own visit (session user id equals `Listing.userId`).
+
+One row is written per `(listingId, type, visitorId, day)`: the unique index
+makes a refresh, a second tab or React's double effect in development a no-op.
+`day` is a `DATE` (UTC midnight). The visitor id is a random 128-bit value kept
+in the `kiosk_visitor` cookie (`HttpOnly`, one year, `SameSite=None; Secure` in
+production, `Lax` locally) — the API never stores IPs, user agents or session
+tokens with the event. `VISITOR_COOKIE_NAME` overrides the cookie name.
+
+`GET /listings/:id/stats?days=14` (owner or admin) returns:
+
+```json
+{
+  "listingId": 25,
+  "days": [{ "date": "2026-11-18", "views": 1 }],
+  "totals": { "views": 1, "viewsInWindow": 1, "contacts": 1 },
+  "contactRate": 1
+}
+```
+
+`days` is zero-filled and oldest-first (`days` is clamped to 1–90, default 14),
+`totals.views` is all-time, `contacts` counts `listing-chat-threads` rows and
+`contactRate` is `contacts / views` (0 without views). Deletes the listing's
+events when the listing is deleted (`onDelete: Cascade`).
 
 ### `/listing-translations` — ListingTranslation
 Source: `src/listing-translations/listing-translations.controller.ts`,
