@@ -771,10 +771,6 @@
     "en": "Sign in to publish",
     "hr": "Prijavite se za objavu"
   },
-  "interview.search": {
-    "en": "Search",
-    "hr": "Traži"
-  },
   "interview.publish": {
     "en": "Publish",
     "hr": "Objavi"
@@ -782,10 +778,6 @@
   "interview.publishing": {
     "en": "Publishing…",
     "hr": "Objavljivanje…"
-  },
-  "interview.chooseDirection": {
-    "en": "Choose For Sale or Wanted first",
-    "hr": "Prvo odaberi Za prodaju ili Tražim"
   },
   "interview.directionAria": {
     "en": "Listing direction",
@@ -986,18 +978,6 @@
   "listings.empty": {
     "en": "No listings match the current filters.",
     "hr": "Nema oglasa koji odgovaraju trenutnim filtrima."
-  },
-  "listings.buyTitle": {
-    "en": "Wanted listings",
-    "hr": "Traženi oglasi"
-  },
-  "listings.sellTitle": {
-    "en": "For Sale listings",
-    "hr": "Oglasi za prodaju"
-  },
-  "listings.searchTitle": {
-    "en": "Search listings",
-    "hr": "Rezultati pretrage"
   },
   "listings.your": {
     "en": "Your listing: {title}",
