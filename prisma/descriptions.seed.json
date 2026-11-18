@@ -531,6 +531,30 @@
     "en": "Back to results",
     "hr": "Natrag na rezultate"
   },
+  "listing.backDashboard": {
+    "en": "Back to dashboard",
+    "hr": "Natrag na nadzornu ploču"
+  },
+  "breadcrumb.aria": {
+    "en": "Breadcrumb",
+    "hr": "Navigacijska staza"
+  },
+  "breadcrumb.search": {
+    "en": "Search",
+    "hr": "Pretraga"
+  },
+  "breadcrumb.results": {
+    "en": "Search Results",
+    "hr": "Rezultati pretrage"
+  },
+  "breadcrumb.myListings": {
+    "en": "My Listings",
+    "hr": "Moji oglasi"
+  },
+  "breadcrumb.listingDetails": {
+    "en": "Listing details",
+    "hr": "Detalji oglasa"
+  },
   "listing.notFound": {
     "en": "This listing no longer exists.",
     "hr": "Ovaj oglas više ne postoji."
