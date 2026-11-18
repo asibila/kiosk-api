@@ -1,4 +1,8 @@
 {
+  "common.loading": {
+    "en": "Loading",
+    "hr": "Učitavanje"
+  },
   "common.close": {
     "en": "Close",
     "hr": "Zatvori"
@@ -1083,14 +1087,6 @@
     "en": "My listings",
     "hr": "Moji oglasi"
   },
-  "auth.checking": {
-    "en": "Checking your session…",
-    "hr": "Provjera sesije…"
-  },
-  "auth.redirecting": {
-    "en": "Redirecting to sign in…",
-    "hr": "Preusmjeravanje na prijavu…"
-  },
   "publish.viewListing": {
     "en": "View listing",
     "hr": "Pogledaj oglas"
@@ -1282,14 +1278,6 @@
   "profile.guest": {
     "en": "Sign in to see your profile.",
     "hr": "Prijavite se da vidite svoj profil."
-  },
-  "loading.title": {
-    "en": "Loading interviews…",
-    "hr": "Učitavanje intervjua…"
-  },
-  "loading.body": {
-    "en": "Fetching categories, listings and conversations from the backend.",
-    "hr": "Dohvaćanje kategorija, oglasa i razgovora s poslužitelja."
   },
   "error.title": {
     "en": "Cannot load data",
