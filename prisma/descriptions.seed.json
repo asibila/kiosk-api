@@ -1071,6 +1071,26 @@
     "en": "Views, contacts and the next steps for your newest ad.",
     "hr": "Pregledi, kontakti i sljedeći koraci za tvoj najnoviji oglas."
   },
+  "dashboard.selectTitle": {
+    "en": "Select a listing to show its dashboard",
+    "hr": "Odaberi oglas za prikaz statistike"
+  },
+  "dashboard.selectBody": {
+    "en": "Pick one of your ads in the menu to see its views, contacts and next steps.",
+    "hr": "Odaberi jedan od svojih oglasa u izborniku da vidiš preglede, kontakte i sljedeće korake."
+  },
+  "dashboard.openListings": {
+    "en": "My listings",
+    "hr": "Moji oglasi"
+  },
+  "auth.checking": {
+    "en": "Checking your session…",
+    "hr": "Provjera sesije…"
+  },
+  "auth.redirecting": {
+    "en": "Redirecting to sign in…",
+    "hr": "Preusmjeravanje na prijavu…"
+  },
   "publish.viewListing": {
     "en": "View listing",
     "hr": "Pogledaj oglas"
@@ -1078,6 +1098,10 @@
   "publish.publishAnother": {
     "en": "Publish another",
     "hr": "Objavi još jedan"
+  },
+  "publish.answerQuestions": {
+    "en": "Answer questions",
+    "hr": "Odgovori na pitanja"
   },
   "publish.backToSearch": {
     "en": "Back to search",
