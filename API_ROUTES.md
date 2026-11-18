@@ -12,7 +12,9 @@ AI agents and humans integrating with the API.
 | Framework | NestJS 12, Express adapter, ESM |
 | Database | PostgreSQL via Prisma 6 (`prisma/schema.prisma`, `DATABASE_URL` in `.env`) |
 | Content type | `application/json` for request bodies |
-| Auth | `POST /auth/login` validates email + password, creates a server-side session and sets an HTTP-only `kiosk_session` cookie. `AuthGuard` resolves it on every request; guests may only use `@Public()` routes. |
+| Auth | `POST /auth/login` validates email + password, creates a server-side session and sets an HTTP-only `kiosk_session` cookie. `POST /auth/register` creates the account and the session in one request. `AuthGuard` resolves the cookie on every request; guests may only use `@Public()` routes. |
+| Abuse protection | Global per-IP rate limiting (`@nestjs/throttler`, 600/min default) with tighter limits on login (10/min), signup (5/hour), image upload (30/hour) and the view beacon (60/min); `helmet` adds security headers |
+| Signup notice | A successful registration POSTs to `SIGNUP_WEBHOOK_URL` (Slack/Discord/any), fire-and-forget |
 | Validation | Global `StandardSchemaValidationPipe`; Zod schemas attached per body with `@Body({ schema })` |
 | Transform | Validation pipes transform input (`.trim()`, email `.toLowerCase()`), so stored/returned values are transformed |
 | Pagination / filtering | **None.** `GET /<resource>` returns every row, ordered by `id` ascending |
@@ -25,7 +27,11 @@ AI agents and humans integrating with the API.
 
 | Method | Path | Request body | Success | Notes |
 | --- | --- | --- | --- | --- |
-| `POST` | `/auth/login` | `CreateLoginDto` | `200` user + `Set-Cookie` | `{ email, password }`; `401` invalid credentials or deactivated user |
+| `POST` | `/auth/login` | `CreateLoginDto` | `200` user + `Set-Cookie` | `{ email, password }`; `401` invalid credentials or deactivated user; 10/min per IP |
+| `POST` | `/auth/register` | `RegisterDto` | `201` user + `Set-Cookie` | signup: creates a `USER`, sets `User.acceptedTermsAt`, signs in; `409` duplicate email, `400` validation; 5/hour per IP |
+| `GET` | `/auth/google` | `?from=` (local path) | `302` to Google | starts the Google flow; sets a short-lived `kiosk_oauth_state` cookie; `302` to `/login?error=unavailable` when unconfigured |
+| `GET` | `/auth/google/callback` | `?code=&state=` | `302` to the site | finishes the flow: validates state, links/creates the account, sets `kiosk_session`, redirects to `from`; failures redirect to `/login?error=<code>` |
+| `GET` | `/healthz` | – | `200` `{ status: "ok", database: "ok" }` | public; pings the database (Render health check) |
 | `GET` | `/auth/me` | – | `200` user \| empty | public: `null` body when there is no session |
 | `POST` | `/auth/logout` | – | `204` empty | revokes the session row and clears the cookie |
 | `POST` | `/users` | `CreateUserDto` | `201` user | public registration: `role` is forced to `USER`, `isActive` to `true` |
@@ -110,12 +116,36 @@ AI agents and humans integrating with the API.
 - **Global guard**: every route requires a session unless it is decorated with
   `@Public()`. `@Roles('ADMIN')` protects catalog writes (users admin actions,
   categories, descriptions, facet schemas/options).
-- **Public routes**: `GET /`, `/auth/login`, `/auth/me`, `/listings` (active
-  rows), `/listing-translations`, `/listing-images` (including `/file`),
-  `/categories`, `/descriptions`, `/languages`, `/regions`,
+- **Public routes**: `GET /`, `/healthz`, `/auth/login`, `/auth/me`, `/auth/register`,
+  `/listings` (active rows), `/listing-translations`, `/listing-images`
+  (including `/file`), `/categories`, `/descriptions`, `/languages`, `/regions`,
   `/facet-schemas`, `/facet-value-options`, `/facet-value-selections`,
   `/suggest`, `POST /users` (registration; role forced to `USER`), and
   `POST /listings/:id/view` (the statistics beacon).
+- **Rate limiting and headers**: `ThrottlerGuard` runs before the session lookup
+  (in-memory store, per IP; `trust proxy` is enabled so Render's forwarded IP is
+  used). `helmet` sets the usual security headers with
+  `Cross-Origin-Resource-Policy: cross-origin` so listing images stay embeddable,
+  and without a CSP (the SSR server owns the page CSP).
+- **Signup/session policy**: `POST /auth/register` creates `USER` rows only and
+  signs the account in. `POST /auth/login` answers `401` for social-only accounts
+  (no password hash) as well as for wrong passwords, so it never reveals which
+  emails exist.
+- **Google sign-in** (`GET /auth/google` → `GET /auth/google/callback`): a
+  server-side authorization-code flow with a `state` cookie (10 min, scoped to
+  `/auth/google`); the client secret never reaches the browser. Accounts are
+  matched by the provider's stable `sub` first, then by email:
+  - an existing **link** signs in (even if the Google email changed);
+  - an email that already has a **password account** is **refused**
+    (`/login?error=email_in_use`) — our signup emails are unverified, so silent
+    linking could hand someone else's account to the mailbox owner;
+  - an email owned by a provider-only account is linked (both sides verified);
+  - otherwise a `USER` is created (no password hash) and linked.
+  Inactive accounts, unverified Google emails and provider errors also redirect
+  to `/login?error=<code>`; `from` is limited to local paths.
+- **Admin bootstrap**: on boot, `ADMIN_EMAIL` promotes that account to `ADMIN`
+  (creating it when `ADMIN_PASSWORD` is set). Signup always creates `USER` rows,
+  so this is how the first admin exists on a fresh deployment.
 - **Ownership**: listing writes, translations, images and facet selections are
   limited to the listing owner (admins bypass). Drafts are only visible to their
   owner and return `404` to everyone else.
@@ -126,7 +156,10 @@ AI agents and humans integrating with the API.
 - **CSRF**: cookie-authenticated writes also require an allowed `Origin`; CORS
   is restricted to `FRONTEND_ORIGINS` and `credentials: true`.
 - **Environment**: `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS` (7 by default),
-  `SESSION_COOKIE_SAMESITE` (`none`/`lax`/`strict`), `FRONTEND_ORIGINS`.
+  `SESSION_COOKIE_SAMESITE` (`none`/`lax`/`strict`), `FRONTEND_ORIGINS`,
+  `SIGNUP_WEBHOOK_URL`, `PUBLIC_ORIGIN`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`,
+  `ADMIN_NAME`, `VISITOR_COOKIE_NAME`, `GOOGLE_CLIENT_ID`,
+  `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`.
 
 ## Conventions
 
@@ -192,6 +225,15 @@ Update body (`UpdateUserDto`): any subset of the above, at least one field.
 
 Response fields: `id`, `name`, `email`, `role`, `isActive`, `createdAt`,
 `updatedAt`. **`passwordHash` is never returned. No audit columns.**
+
+`passwordHash` is null for accounts created through Google (they sign in there);
+the column is otherwise the scrypt hash. Terms acceptance is stored in
+`acceptedTermsAt` (set by `/auth/register` and by the first Google sign-in).
+
+`OAuthAccount` (one row per provider identity) holds `provider` (`google`),
+`providerAccountId` (Google `sub`), `email` and `userId`; it is unique on
+`(provider, providerAccountId)` and `(provider, userId)` and cascades with the
+user.
 
 Notes:
 - `POST /users` with a duplicate `email` → `409`.

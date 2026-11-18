@@ -23,7 +23,10 @@ export class AuthService {
       select: { ...authUserSelect, passwordHash: true },
     });
 
-    const valid = user ? await verifyPassword(password, user.passwordHash) : false;
+    // Social-only accounts have no password hash; they cannot sign in here.
+    const valid = user?.passwordHash
+      ? await verifyPassword(password, user.passwordHash)
+      : false;
 
     // A deactivated account gets the same answer as a wrong password.
     if (!user || !user.isActive || !valid) {

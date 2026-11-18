@@ -103,6 +103,246 @@
     "en": "Sign in failed.",
     "hr": "Prijava nije uspjela."
   },
+  "login.createAccount": {
+    "en": "Create an account",
+    "hr": "Stvori račun"
+  },
+  "auth.google": {
+    "en": "Continue with Google",
+    "hr": "Nastavi s Googleom"
+  },
+  "auth.or": {
+    "en": "or",
+    "hr": "ili"
+  },
+  "auth.termsHint": {
+    "en": "By continuing you accept the terms of service and the privacy notice.",
+    "hr": "Nastavkom prihvaćaš uvjete korištenja i obavijest o privatnosti."
+  },
+  "auth.error.emailInUse": {
+    "en": "An account with this email already exists. Sign in with your password instead.",
+    "hr": "Račun s ovim emailom već postoji. Prijavi se svojom lozinkom."
+  },
+  "auth.error.inactive": {
+    "en": "This account is deactivated.",
+    "hr": "Ovaj je račun deaktiviran."
+  },
+  "auth.error.unverified": {
+    "en": "Google did not confirm this email address.",
+    "hr": "Google nije potvrdio ovu email adresu."
+  },
+  "auth.error.denied": {
+    "en": "Google sign-in was cancelled.",
+    "hr": "Prijava putem Googlea je otkazana."
+  },
+  "auth.error.unavailable": {
+    "en": "Google sign-in is not available right now.",
+    "hr": "Prijava putem Googlea trenutačno nije dostupna."
+  },
+  "auth.error.failed": {
+    "en": "Google sign-in failed. Please try again.",
+    "hr": "Prijava putem Googlea nije uspjela. Pokušaj ponovno."
+  },
+  "signup.aria": {
+    "en": "Create an account",
+    "hr": "Stvaranje računa"
+  },
+  "signup.title": {
+    "en": "Create an account",
+    "hr": "Stvori račun"
+  },
+  "signup.name": {
+    "en": "Name",
+    "hr": "Ime"
+  },
+  "signup.email": {
+    "en": "Email",
+    "hr": "Email"
+  },
+  "signup.password": {
+    "en": "Password (at least 8 characters)",
+    "hr": "Lozinka (najmanje 8 znakova)"
+  },
+  "signup.passwordConfirm": {
+    "en": "Repeat password",
+    "hr": "Ponovi lozinku"
+  },
+  "signup.passwordMismatch": {
+    "en": "The passwords do not match.",
+    "hr": "Lozinke se ne podudaraju."
+  },
+  "signup.termsRequired": {
+    "en": "Please accept the terms to continue.",
+    "hr": "Prihvati uvjete za nastavak."
+  },
+  "signup.termsPrefix": {
+    "en": "I accept the",
+    "hr": "Prihvaćam"
+  },
+  "signup.termsLink": {
+    "en": "terms of service",
+    "hr": "uvjete korištenja"
+  },
+  "signup.termsAnd": {
+    "en": "and the",
+    "hr": "i"
+  },
+  "signup.privacyLink": {
+    "en": "privacy notice",
+    "hr": "obavijest o privatnosti"
+  },
+  "signup.submit": {
+    "en": "Create account",
+    "hr": "Stvori račun"
+  },
+  "signup.creating": {
+    "en": "Creating account…",
+    "hr": "Stvaranje računa…"
+  },
+  "signup.failed": {
+    "en": "Signup failed.",
+    "hr": "Registracija nije uspjela."
+  },
+  "signup.haveAccount": {
+    "en": "Already have an account?",
+    "hr": "Već imaš račun?"
+  },
+  "signup.signIn": {
+    "en": "Sign in",
+    "hr": "Prijavi se"
+  },
+  "legal.back": {
+    "en": "Back to the marketplace",
+    "hr": "Natrag na tržnicu"
+  },
+  "legal.updated": {
+    "en": "Last updated: November 2026.",
+    "hr": "Zadnja izmjena: studeni 2026."
+  },
+  "terms.aria": {
+    "en": "Terms of service",
+    "hr": "Uvjeti korištenja"
+  },
+  "terms.title": {
+    "en": "Terms of service",
+    "hr": "Uvjeti korištenja"
+  },
+  "terms.intro": {
+    "en": "Kiosk is a local marketplace that connects buyers and sellers. By creating an account you agree to these terms.",
+    "hr": "Kiosk je lokalna tržnica koja povezuje kupce i prodavatelje. Stvaranjem računa prihvaćaš ove uvjete."
+  },
+  "terms.account.title": {
+    "en": "Your account",
+    "hr": "Tvoj račun"
+  },
+  "terms.account.body": {
+    "en": "You are responsible for your password and for everything done under your account. Use one account per person and do not impersonate anyone.",
+    "hr": "Odgovoran si za svoju lozinku i sve što se učini pod tvojim računom. Koristi jedan račun po osobi i ne predstavljaj se kao netko drugi."
+  },
+  "terms.content.title": {
+    "en": "Your listings",
+    "hr": "Tvoji oglasi"
+  },
+  "terms.content.body": {
+    "en": "Post only items you own and may legally sell, with photos you took. Listings that break the law or these terms can be removed.",
+    "hr": "Objavljuj samo stvari koje posjeduješ i smiješ legalno prodati, s fotografijama koje si sam snimio. Oglasi koji krše zakon ili ove uvjete mogu biti uklonjeni."
+  },
+  "terms.conduct.title": {
+    "en": "Fair use",
+    "hr": "Pošteno korištenje"
+  },
+  "terms.conduct.body": {
+    "en": "No spam, scams, harassment or attempts to break the service. Buyers and sellers arrange payment and delivery between themselves.",
+    "hr": "Bez spama, prijevara, uznemiravanja ili pokušaja narušavanja rada servisa. Kupci i prodavatelji plaćanje i dostavu dogovaraju sami."
+  },
+  "terms.liability.title": {
+    "en": "Liability",
+    "hr": "Odgovornost"
+  },
+  "terms.liability.body": {
+    "en": "The marketplace only brings people together; it is not a party to any sale. The service is provided as is, without guarantees.",
+    "hr": "Tržnica samo povezuje ljude; nije stranka u prodaji. Servis se pruža takav kakav jest, bez jamstava."
+  },
+  "terms.changes.title": {
+    "en": "Changes",
+    "hr": "Promjene"
+  },
+  "terms.changes.body": {
+    "en": "These terms may change. Continuing to use your account after an update means you accept the new version.",
+    "hr": "Ovi se uvjeti mogu mijenjati. Daljnjim korištenjem računa nakon izmjene prihvaćaš novu verziju."
+  },
+  "privacy.aria": {
+    "en": "Privacy notice",
+    "hr": "Obavijest o privatnosti"
+  },
+  "privacy.title": {
+    "en": "Privacy notice",
+    "hr": "Obavijest o privatnosti"
+  },
+  "privacy.intro": {
+    "en": "This notice explains what the marketplace stores about you, why, and how you can have it removed.",
+    "hr": "Ova obavijest objašnjava što tržnica pohranjuje o tebi, zašto i kako to možeš ukloniti."
+  },
+  "privacy.data.title": {
+    "en": "What we store",
+    "hr": "Što pohranjujemo"
+  },
+  "privacy.data.body": {
+    "en": "Your name, email and a hashed password, plus the listings, photos, conversations and messages you create.",
+    "hr": "Tvoje ime, email i kriptiranu lozinku te oglase, fotografije, razgovore i poruke koje stvoriš."
+  },
+  "privacy.cookies.title": {
+    "en": "Cookies",
+    "hr": "Kolačići"
+  },
+  "privacy.cookies.body": {
+    "en": "Signing in sets a session cookie. We also keep your language and theme choice, and an anonymous visitor id used to count listing views (one per day; never an IP address).",
+    "hr": "Prijava postavlja kolačić sesije. Čuvamo i odabir jezika i teme te anonimni identifikator posjetitelja za brojanje pregleda oglasa (jedan dnevno; nikad IP adresa)."
+  },
+  "privacy.retention.title": {
+    "en": "How long",
+    "hr": "Koliko dugo"
+  },
+  "privacy.retention.body": {
+    "en": "Accounts and listings remain until you delete them. View counts are kept for up to a year and are not linked to your identity.",
+    "hr": "Računi i oglasi ostaju dok ih ne obrišeš. Brojanja pregleda čuvaju se do godinu dana i nisu povezana s tvojim identitetom."
+  },
+  "privacy.rights.title": {
+    "en": "Your choices",
+    "hr": "Tvoje mogućnosti"
+  },
+  "privacy.rights.body": {
+    "en": "You can change your name and password, delete your listings, and ask for your account and its data to be removed.",
+    "hr": "Možeš promijeniti ime i lozinku, obrisati svoje oglase i zatražiti brisanje računa i njegovih podataka."
+  },
+  "privacy.contact.title": {
+    "en": "Contact",
+    "hr": "Kontakt"
+  },
+  "privacy.contact.body": {
+    "en": "For any privacy request, contact the marketplace operator from the email address on your account so we can verify it.",
+    "hr": "Za svaki zahtjev o privatnosti obrati se voditelju tržnice s email adrese na svom računu kako bismo je mogli provjeriti."
+  },
+  "admin.signups": {
+    "en": "Signups",
+    "hr": "Registracije"
+  },
+  "admin.signupsTitle": {
+    "en": "Recent signups",
+    "hr": "Nedavne registracije"
+  },
+  "admin.loading": {
+    "en": "Loading…",
+    "hr": "Učitavanje…"
+  },
+  "admin.noSignups": {
+    "en": "No accounts yet.",
+    "hr": "Još nema računa."
+  },
+  "admin.adminBadge": {
+    "en": "Admin",
+    "hr": "Admin"
+  },
   "drawer.aria": {
     "en": "My listings",
     "hr": "Moji oglasi"
@@ -898,6 +1138,14 @@
   "stats.viewsWindow": {
     "en": "Views, last {days} days",
     "hr": "Pregledi, zadnjih {days} dana"
+  },
+  "stats.viewsChartAria": {
+    "en": "{count} views in the last {days} days",
+    "hr": "{count} pregleda u zadnjih {days} dana"
+  },
+  "stats.noViews": {
+    "en": "No views in this period yet.",
+    "hr": "U ovom razdoblju još nema pregleda."
   },
   "listing.statsAria": {
     "en": "Listing statistics",

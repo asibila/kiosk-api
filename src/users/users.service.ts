@@ -7,6 +7,7 @@ import {
 import { Prisma } from '@prisma/client';
 import type { RequestUser } from '../auth/current-user.decorator.js';
 import { AccessService } from '../common/access.service.js';
+import { SignupNotifier } from '../notifications/signup-notifier.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { hashPassword } from './password.js';
 import type { CreateUserDto } from './dto/create-user.dto.js';
@@ -20,31 +21,80 @@ import {
 
 export type User = AuthUser;
 
+/** Extra fields only the registration flow sets. */
+export type CreateUserOptions = {
+  acceptedTermsAt?: Date | null;
+};
+
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AccessService,
+    private readonly signupNotifier: SignupNotifier,
   ) {}
 
   /**
    * Public registration. The role and activation are fixed here so a caller
-   * cannot create an admin through `POST /users`.
+   * cannot create an admin through `POST /users` or `POST /auth/register`.
+   * A successful insert is announced to the configured webhook; the notice is
+   * sent without blocking the response.
    */
-  async create(dto: CreateUserDto, _actorId: number | null = null): Promise<User> {
+  async create(
+    dto: CreateUserDto,
+    _actorId: number | null = null,
+    options: CreateUserOptions = {},
+  ): Promise<User> {
     const passwordHash = await hashPassword(dto.password);
 
     try {
-      return await this.prisma.user.create({
+      const user = await this.prisma.user.create({
         data: {
           name: dto.name,
           email: dto.email,
           passwordHash,
           role: 'USER',
           isActive: true,
+          acceptedTermsAt: options.acceptedTermsAt ?? null,
         },
         select: authUserSelect,
       });
+
+      void this.signupNotifier.notify(user);
+
+      return user;
+    } catch (error) {
+      this.rethrow(error);
+    }
+  }
+
+  /**
+   * Account created from a social provider: no password (the provider is the
+   * only way in), terms accepted by continuing, and the usual signup notice.
+   */
+  async createSocial({
+    name,
+    email,
+  }: {
+    name: string;
+    email: string;
+  }): Promise<User> {
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          name,
+          email,
+          passwordHash: null,
+          role: 'USER',
+          isActive: true,
+          acceptedTermsAt: new Date(),
+        },
+        select: authUserSelect,
+      });
+
+      void this.signupNotifier.notify(user);
+
+      return user;
     } catch (error) {
       this.rethrow(error);
     }

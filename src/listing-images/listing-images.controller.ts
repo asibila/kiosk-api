@@ -17,6 +17,7 @@ import {
   UseFilters,
   UseInterceptors,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
@@ -42,6 +43,7 @@ export class ListingImagesController {
   constructor(private readonly listingImages: ListingImagesService) {}
 
   @Post()
+  @Throttle({ default: { limit: 30, ttl: 3_600_000 } })
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },

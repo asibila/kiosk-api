@@ -12,6 +12,7 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser, type RequestUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
 import {
@@ -35,6 +36,7 @@ export class ListingEventsController {
 
   @Public()
   @Post(':id/view')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   async recordView(
     @Param('id', ParseIntPipe) id: number,

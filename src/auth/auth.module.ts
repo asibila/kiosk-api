@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common';
+import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
+import { GoogleAuthController } from './google/google-auth.controller.js';
+import { GoogleAuthService } from './google/google-auth.service.js';
 
 @Module({
-  controllers: [AuthController],
-  providers: [AuthService, AuthGuard],
+  imports: [UsersModule],
+  controllers: [AuthController, GoogleAuthController],
+  providers: [AuthService, AuthGuard, GoogleAuthService],
   exports: [AuthService, AuthGuard],
 })
 export class AuthModule {}

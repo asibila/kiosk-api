@@ -1,6 +1,10 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NextFunction, Request, Response } from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module.js';
+import { ensureAdmin } from './bootstrap/admin-bootstrap.js';
+import { PrismaService } from './prisma/prisma.service.js';
 
 // The deployed frontend is a separate origin from the API, so the browser needs
 // CORS. `FRONTEND_ORIGINS` is a comma-separated list that replaces the defaults
@@ -23,6 +27,20 @@ const frontendOrigins = (process.env.FRONTEND_ORIGINS ?? '')
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Render terminates TLS in front of the service: trust its forwarded headers
+  // so `request.ip` (rate limiting) and `request.protocol` see the visitor.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
+  app.use(
+    helmet({
+      // The API answers JSON and image bytes, never HTML pages; the SSR server
+      // ships the CSP that matters for the site.
+      contentSecurityPolicy: false,
+      // Listing images are embedded by the frontend origin (a different origin).
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   app.enableCors({
     origin: frontendOrigins.length ? frontendOrigins : DEFAULT_FRONTEND_ORIGINS,
@@ -57,6 +75,9 @@ async function bootstrap() {
 
     response.status(403).json({ message: 'Origin not allowed' });
   });
+
+  // Promote or create the owner account (`ADMIN_EMAIL` / `ADMIN_PASSWORD`).
+  await ensureAdmin(app.get(PrismaService), new Logger('admin-bootstrap'));
 
   app.enableShutdownHooks();
 

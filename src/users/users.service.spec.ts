@@ -42,15 +42,19 @@ const access = {
   isAdmin: (candidate: RequestUser | null) => candidate?.role === 'ADMIN',
 };
 
+const notify = vi.fn(async () => undefined);
+
 describe('UsersService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
   let service: UsersService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
+    notify.mockClear();
     service = new UsersService(
       prisma as unknown as PrismaService,
       access as never,
+      { notify } as never,
     );
   });
 
@@ -111,6 +115,58 @@ describe('UsersService', () => {
           password: 'super-secret',
         }),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('records when the terms were accepted', async () => {
+      prisma.user.create.mockResolvedValue(user);
+      const acceptedTermsAt = new Date('2026-11-18T10:00:00.000Z');
+
+      await service.create(
+        { name: 'Ada', email: 'ada@example.com', password: 'super-secret' },
+        null,
+        { acceptedTermsAt },
+      );
+
+      expect(prisma.user.create.mock.calls[0][0].data.acceptedTermsAt).toBe(
+        acceptedTermsAt,
+      );
+    });
+
+    it('leaves the timestamp empty for admin-created accounts', async () => {
+      prisma.user.create.mockResolvedValue(user);
+
+      await service.create({
+        name: 'Ada',
+        email: 'ada@example.com',
+        password: 'super-secret',
+      });
+
+      expect(prisma.user.create.mock.calls[0][0].data.acceptedTermsAt).toBeNull();
+    });
+
+    it('announces a new account without blocking the response', async () => {
+      prisma.user.create.mockResolvedValue(user);
+
+      await service.create({
+        name: 'Ada',
+        email: 'ada@example.com',
+        password: 'super-secret',
+      });
+
+      expect(notify).toHaveBeenCalledWith(user);
+    });
+
+    it('does not announce a rejected registration', async () => {
+      prisma.user.create.mockRejectedValue(knownError('P2002'));
+
+      await expect(
+        service.create({
+          name: 'Ada',
+          email: 'ada@example.com',
+          password: 'super-secret',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(notify).not.toHaveBeenCalled();
     });
   });
 

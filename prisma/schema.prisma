@@ -75,15 +75,39 @@ model User {
   id           Int      @id @default(autoincrement())
   name         String
   email        String   @unique
-  passwordHash String
+  /// `null` for accounts created through a social provider (they sign in there).
+  passwordHash String?
   role         String   @default("USER")
   isActive     Boolean  @default(true)
+  /// When the user accepted the terms of service at signup.
+  acceptedTermsAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  sessions Session[]
+  sessions      Session[]
+  oauthAccounts OAuthAccount[]
 
   @@index([name])
+}
+
+/// A social identity linked to an account. `providerAccountId` is the provider's
+/// stable user id (Google's `sub`), never the email, which can change.
+model OAuthAccount {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  /// `google` (more providers can follow).
+  provider          String
+  providerAccountId String
+  /// Email as returned by the provider when the link was created.
+  email             String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([provider, userId])
+  @@index([email])
+  @@index([userId])
 }
 
 /// A signed-in browser session. `id` is the SHA-256 of the cookie token, so a
