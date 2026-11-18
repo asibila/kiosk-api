@@ -6,11 +6,13 @@ import { DescriptionsService } from '../descriptions/descriptions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateCategoryDto } from './dto/create-category.dto.js';
 import type { UpdateCategoryDto } from './dto/update-category.dto.js';
+import { sanitizeCategoryIconSvg } from './category-icon.js';
 
 const categorySelect = {
   id: true,
   descriptionId: true,
   parentCategoryId: true,
+  iconSvg: true,
   ...auditSelect,
 } satisfies Prisma.CategorySelect;
 
@@ -182,7 +184,7 @@ export class CategoriesService extends CrudService<
     actorId: number | null = null,
   ): Promise<Category> {
     await this.descriptions.assertExists(dto.descriptionId);
-    const row = await super.create(dto, actorId);
+    const row = await super.create(this.withSanitizedIcon(dto), actorId);
     return this.withFacetCounts(row);
   }
 
@@ -241,7 +243,7 @@ export class CategoriesService extends CrudService<
     if (dto.parentCategoryId != null) {
       await this.assertNoCycle(id, dto.parentCategoryId);
     }
-    const row = await super.update(id, dto, actorId);
+    const row = await super.update(id, this.withSanitizedIcon(dto), actorId);
     return this.withFacetCounts(row);
   }
 
@@ -266,6 +268,20 @@ export class CategoriesService extends CrudService<
     };
   }
 
+  /**
+   * Replaces `iconSvg` with its sanitized form. `undefined` leaves the stored
+   * icon untouched; `null` clears it. Any invalid markup fails the request.
+   */
+  private withSanitizedIcon<T extends { iconSvg?: string | null }>(
+    dto: T,
+  ): T {
+    if (dto.iconSvg === undefined) return dto;
+    return {
+      ...dto,
+      iconSvg: dto.iconSvg === null ? null : sanitizeCategoryIconSvg(dto.iconSvg),
+    };
+  }
+
   private allCategory(
     categories: CategoryForTree[],
     facetSchemas: FacetSchemaForCount[],
@@ -276,6 +292,8 @@ export class CategoriesService extends CrudService<
       id: ALL_CATEGORY_ID,
       descriptionId: 0,
       parentCategoryId: null,
+      // The virtual row has no icon; the clients draw their own "all" glyph.
+      iconSvg: null,
       // The virtual row has no audit trail; keep the response shape stable.
       createdAt: new Date(0),
       updatedAt: new Date(0),

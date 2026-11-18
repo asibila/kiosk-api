@@ -157,7 +157,7 @@ CRUD controller per entity. Every resource has the same endpoints:
 | --- | --- |
 | `/listings` | `categoryId`, `regionId` (optional, default `0`), `orientation` (`buy` or `sell`), `userId`, optional `isActive` |
 | `/listing-translations` | `listingId`, `language`, `title` (upsert per language) |
-| `/categories` | `descriptionId`, `parentCategoryId` (nullable) |
+| `/categories` | `descriptionId`, `parentCategoryId` (nullable), `iconSvg` (optional inline SVG, sanitized) |
 | `/descriptions` | `{ translations: { en, hr } }` (both language texts; update accepts a subset) |
 | `/languages` | read-only: `GET /languages`, `GET /languages/:code` (`en`, `hr`) |
 | `/chat-messages` | `text` (max 225), `threadId`, `userId` (id of the user which created the message) | `201` created row |
@@ -206,6 +206,25 @@ facets, moves `brand` to its parent Electronics category and adds a Mobile
 phones `screen_size` facet. Orientation is a facet in the UI/API but its value
 is stored on `Listing.orientation`; price and year use `Listing.price` and
 `Listing.year`.
+
+### Category icons
+
+`Category.iconSvg` holds an optional inline SVG icon. The API sanitizes it on
+write (`src/categories/category-icon.ts`): only `svg`, `g`, `path`, `circle`,
+`rect`, `line`, `polyline`, `polygon` and `ellipse` are kept, attributes are
+validated against a per-attribute allow-list (`d`, geometry, `fill`, `stroke`,
+…), a `viewBox` is required, and `class`/`id`/`style`/`href`/event handlers are
+dropped. Executable elements (`script`, `style`, `foreignObject`, `use`,
+`image`, `a`) and `url(...)`/`javascript:` values are rejected with `400`, and
+the normalized result must stay under 4096 characters. Because
+`GET /categories` is loaded on every page, keep icons small; draw strokes with
+`currentColor` so they follow the theme.
+
+`npm run prisma:icons` backfills the seeded categories from
+`prisma/category-icons.json` (matched by English description). It only fills
+icons that are empty; pass `--force` to re-apply the defaults after editing the
+file. A category without an icon is drawn by the frontend's title-based
+fallback, so the column can stay `null`.
 
 ### Drafts and listing titles
 

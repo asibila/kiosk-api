@@ -24,6 +24,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "node prisma/seed.mjs",
+    "prisma:icons": "node prisma/set-category-icons.mjs",
     "prisma:studio": "prisma studio",
     "set-password": "node prisma/set-password.mjs",
     "postinstall": "prisma generate"

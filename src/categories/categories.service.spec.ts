@@ -22,6 +22,10 @@ function createService(parents: Record<number, number | null>) {
         })),
       ),
       update: vi.fn(async () => ({ id: 1 })),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 1,
+        ...data,
+      })),
     },
     facetSchema: {
       findMany: vi.fn(async () => [
@@ -130,6 +134,68 @@ describe('CategoriesService.findAll', () => {
     expect(rows.map((row) => row.id)).toEqual([0, 1, 2]);
     expect(rows.map((row) => row.facetsCountMax)).toEqual([4, 4, 4]);
     expect(rows.map((row) => row.facetsCountMaxAnswerable)).toEqual([2, 2, 2]);
+  });
+});
+
+describe('CategoriesService icons', () => {
+  const ICON = '<svg viewBox="0 0 24 24" class="lucide" onload="alert(1)"><path d="M0 0h24" onclick="x" /></svg>';
+  const SANITIZED =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24" /></svg>';
+
+  it('sanitizes the SVG before creating the category', async () => {
+    const { service, prisma } = createService({ 1: null });
+
+    await service.create({ descriptionId: 5, iconSvg: ICON });
+
+    expect(prisma.category.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ iconSvg: SANITIZED }),
+      }),
+    );
+  });
+
+  it('sanitizes the SVG before updating the category', async () => {
+    const { service, prisma } = createService({ 1: null });
+
+    await service.update(1, { iconSvg: ICON });
+
+    expect(prisma.category.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ iconSvg: SANITIZED }),
+      }),
+    );
+  });
+
+  it('rejects invalid markup without touching the database', async () => {
+    const { service, prisma } = createService({ 1: null });
+
+    await expect(
+      service.update(1, { iconSvg: '<svg viewBox="0 0 24 24"><script /></svg>' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.category.update).not.toHaveBeenCalled();
+  });
+
+  it('clears the icon with null and leaves it untouched when omitted', async () => {
+    const { service, prisma } = createService({ 1: null });
+
+    await service.update(1, { iconSvg: null });
+    expect(prisma.category.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: { iconSvg: null } }),
+    );
+
+    await service.update(1, { parentCategoryId: null });
+    expect(prisma.category.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: { parentCategoryId: null } }),
+    );
+  });
+
+  it('returns no icon for the virtual all category', async () => {
+    const { service } = createService({ 1: null });
+
+    const rows = await service.findAll();
+
+    expect(rows[0]).toMatchObject({ id: 0, iconSvg: null });
   });
 });
 

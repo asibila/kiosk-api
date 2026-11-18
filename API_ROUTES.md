@@ -56,7 +56,7 @@ AI agents and humans integrating with the API.
 | `POST` | `/categories` | `CreateCategoryDto` | `201` category | |
 | `GET` | `/categories` | – | `200` category[] | ordered by `id` |
 | `GET` | `/categories/:id` | – | `200` category | `404` if missing |
-| `PATCH` | `/categories/:id` | `UpdateCategoryDto` | `200` category | `parentCategoryId` may be set to `null`; `400` if it would make the category its own ancestor |
+| `PATCH` | `/categories/:id` | `UpdateCategoryDto` | `200` category | `parentCategoryId` may be set to `null`; `iconSvg` sanitized or cleared with `null`; `400` if it would make the category its own ancestor, or if the icon is invalid |
 | `DELETE` | `/categories/:id` | – | `204` empty | `404` if missing; `400` if still referenced |
 | `POST` | `/descriptions` | `CreateDescriptionDto` | `201` description | creates one row per language |
 | `GET` | `/descriptions` | – | `200` description[] | one object per id with all translations |
@@ -332,9 +332,29 @@ Source: `src/categories/categories.controller.ts`, `src/categories/categories.se
 | --- | --- | --- | --- |
 | `descriptionId` | int | yes | references `descriptions.id`; existence checked by the API |
 | `parentCategoryId` | int \| null | no | FK → `categories.id`; `null`/omitted = root category |
+| `iconSvg` | string \| null | no | inline SVG icon; sanitized on write, `null` clears it |
 
-Response: `id`, `descriptionId`, `parentCategoryId`, `createdAt`, `updatedAt`,
-`createdBy`, `updatedBy`, `facetsCountMax`, `facetsCountMaxAnswerable`.
+Response: `id`, `descriptionId`, `parentCategoryId`, `iconSvg`, `createdAt`,
+`updatedAt`, `createdBy`, `updatedBy`, `facetsCountMax`,
+`facetsCountMaxAnswerable`.
+
+`iconSvg` stores the category's icon as inline SVG (for example
+`<svg viewBox="0 0 24 24">…</svg>`). The API does not trust what it receives:
+`sanitizeCategoryIconSvg` (`src/categories/category-icon.ts`) parses the markup,
+keeps only shape elements (`svg`, `g`, `path`, `circle`, `rect`, `line`,
+`polyline`, `polygon`, `ellipse`) and geometry/paint attributes, requires a
+`viewBox`, drops `class`/`id`/`style`/event handlers/`href`, and re-serializes
+the result. `script`, `style`, `foreignObject`, `use`, `image`, `a` and unknown
+elements are rejected with `400`, as are `url(...)`/`javascript:` attribute
+values and icons longer than 4096 characters. Use `currentColor` for strokes so
+the icon follows the theme. `GET /categories` exposes the sanitized string; a
+category without an icon returns `null` and the clients draw a fallback glyph
+based on the English title.
+
+`npm run prisma:icons` backfills the five seeded category names (Electronics,
+Mobile phones, Vehicles, Furniture, Bikes) from
+`prisma/category-icons.json`; it only fills empty icons unless `--force` is
+passed.
 
 `facetsCountMax` is the number of interview questions that apply to the
 category: every generic option `FacetSchema`, every option `FacetSchema` defined
