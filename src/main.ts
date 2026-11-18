@@ -4,29 +4,14 @@ import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import { ensureAdmin } from './bootstrap/admin-bootstrap.js';
+import { DEFAULT_FRONTEND_ORIGINS, frontendOrigins } from './common/frontend-origins.js';
 import { PrismaService } from './prisma/prisma.service.js';
-
-// The deployed frontend is a separate origin from the API, so the browser needs
-// CORS. `FRONTEND_ORIGINS` is a comma-separated list that replaces the defaults
-// when the frontend moves to a custom domain.
-const DEFAULT_FRONTEND_ORIGINS = [
-  'http://localhost:5173',
-  'https://localhost:5173',
-  'http://localhost:4173',
-  'https://localhost:4173',
-  // Legacy static site (kept while the SSR web service is verified).
-  'https://kiosk-9j6p.onrender.com',
-  // SSR web service (`node server.js`).
-  'https://kiosk-ssr.onrender.com',
-];
-
-const frontendOrigins = (process.env.FRONTEND_ORIGINS ?? '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Configured browsers (`FRONTEND_ORIGINS`) or the deployed defaults.
+  const allowedOrigins = frontendOrigins();
 
   // Render terminates TLS in front of the service: trust its forwarded headers
   // so `request.ip` (rate limiting) and `request.protocol` see the visitor.
@@ -43,7 +28,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: frontendOrigins.length ? frontendOrigins : DEFAULT_FRONTEND_ORIGINS,
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     // `x-actor-id` is kept for old cached bundles; the API now uses the session.
@@ -64,9 +49,7 @@ async function bootstrap() {
       return;
     }
 
-    const allowed = new Set(
-      frontendOrigins.length ? frontendOrigins : DEFAULT_FRONTEND_ORIGINS,
-    );
+    const allowed = new Set(allowedOrigins);
     const self = `${request.protocol}://${request.get('host')}`;
     if (allowed.has(origin) || origin === self) {
       next();

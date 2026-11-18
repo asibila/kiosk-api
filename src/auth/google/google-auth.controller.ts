@@ -1,6 +1,7 @@
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
+import { primaryFrontendOrigin } from '../../common/frontend-origins.js';
 import { Public } from '../public.decorator.js';
 import {
   SESSION_COOKIE,
@@ -17,15 +18,9 @@ import {
   safeReturnPath,
 } from './oauth-state.js';
 
-/** Where the browser goes after sign-in. */
+/** Where the browser goes after sign-in (`PUBLIC_ORIGIN` or the deployed default). */
 function frontendOrigin(): string {
-  const configured = process.env.PUBLIC_ORIGIN?.trim();
-  if (configured) return configured.replace(/\/+$/, '');
-
-  const first = process.env.FRONTEND_ORIGINS?.split(',')[0]?.trim();
-  if (first) return first.replace(/\/+$/, '');
-
-  return 'http://localhost:5173';
+  return primaryFrontendOrigin();
 }
 
 /** Callback URL registered in the Google Cloud console. */
@@ -67,7 +62,9 @@ export class GoogleAuthController {
     const target = safeReturnPath(from);
 
     if (!this.googleAuthService.isConfigured()) {
-      response.redirect(`${frontendOrigin()}/login?error=unavailable`);
+      response.redirect(
+        `${frontendOrigin()}/login?error=unavailable&from=${encodeURIComponent(target)}`,
+      );
       return;
     }
 
