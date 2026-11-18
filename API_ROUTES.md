@@ -46,7 +46,8 @@ AI agents and humans integrating with the API.
 | `PATCH` | `/listings/:id` | `UpdateListingDto` | `200` listing | owner or admin only |
 | `DELETE` | `/listings/:id` | - | `204` empty | owner or admin only |
 | `POST` | `/listings/:id/view` | `CreateListingViewDto` | `204` empty | public beacon: deduped per visitor and UTC day; ignores bots, prefetches, drafts and the owner; sets `kiosk_visitor` |
-| `GET` | `/listings/:id/stats` | optional `?days=` (1–90, default 14) | `200` listing stats | owner or admin: per-day views, all-time views, contacts, contact rate |
+| `GET` | `/listings/:id/stats` | optional `?days=` (1-90, default 14) | `200` listing stats | owner or admin: per-day views, all-time views, contacts, contact rate |
+| `POST` | `/listing-outcomes` | `CreateListingOutcomeDto` | `201` outcome | owner or admin; records why a listing is being deleted; the row survives the delete |
 | `GET` | `/regions` | - | `200` region[] | ordered by `id`; id `0` is "All regions" |
 | `GET` | `/regions/detect` | - | `200` `{ regionId, countryCode }` | from the request IP; `regionId: 0` when unknown |
 | `POST` | `/listing-translations` | `UpsertListingTranslationDto` | `201` translation | upserts on `(listingId, language)` |
@@ -305,6 +306,32 @@ tokens with the event. `VISITOR_COOKIE_NAME` overrides the cookie name.
 `totals.views` is all-time, `contacts` counts `listing-chat-threads` rows and
 `contactRate` is `contacts / views` (0 without views). Deletes the listing's
 events when the listing is deleted (`onDelete: Cascade`).
+
+### `/listing-outcomes` — ListingOutcome
+Source: `src/listing-outcomes/listing-outcomes.controller.ts`,
+`src/listing-outcomes/listing-outcomes.service.ts`
+
+The delete-listing dialog asks what happened to the ad and reports it here
+before the frontend calls `DELETE /listings/:id`.
+
+| Field | Type | Required | Constraints |
+| --- | --- | --- | --- |
+| `listingId` | int | yes | must be an existing listing owned by the caller (admins pass) |
+| `outcome` | string | yes | depends on the listing orientation — see below |
+| `finalPrice` | number \| null | no | `>= 0`; kept for `sold`/`purchased`, cleared otherwise |
+
+Outcomes for a **sell** listing (`Listing.orientation = 'sell'`):
+`sold`, `sale_fell_through`, `kept`, `gave_away`.
+
+Outcomes for a **buy/wanted** listing (`orientation = 'buy'`):
+`purchased`, `purchase_fell_through`, `no_longer_needed`, `bought_elsewhere`.
+
+An outcome from the other orientation is rejected with `400`. The row stores
+`listingId`, `userId` and `categoryId` **without foreign keys**, so it survives
+the listing deletion and can be grouped by category/seller later. Posting an
+outcome for a missing listing returns `404`; another user's listing returns
+`403`. Recording the outcome is best-effort on the client: a failure does not
+block the deletion.
 
 ### `/listing-translations` — ListingTranslation
 Source: `src/listing-translations/listing-translations.controller.ts`,

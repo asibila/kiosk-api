@@ -784,8 +784,36 @@
     "hr": "Smjer oglasa"
   },
   "wizard.step2": {
-    "en": "Step 2 of 3 — Edit",
-    "hr": "Korak 2 od 3 — Uredi"
+    "en": "Step 2 of 3 - Edit",
+    "hr": "Korak 2 od 3 - Uredi"
+  },
+  "wizard.modalTitle": {
+    "en": "Wizard - step {step} of 3",
+    "hr": "Čarobnjak - korak {step} od 3"
+  },
+  "wizard.sellOrBuy": {
+    "en": "Are you buying or selling?",
+    "hr": "Kupujete ili prodajete?"
+  },
+  "wizard.condition": {
+    "en": "What is the condition of the item?",
+    "hr": "Kakvo je stanje predmeta?"
+  },
+  "wizard.questionsAria": {
+    "en": "Listing questions",
+    "hr": "Pitanja oglasa"
+  },
+  "questions.title": {
+    "en": "Answer questions",
+    "hr": "Odgovori na pitanja"
+  },
+  "questions.apply": {
+    "en": "Apply",
+    "hr": "Primijeni"
+  },
+  "questions.saving": {
+    "en": "Saving…",
+    "hr": "Spremanje…"
   },
   "wizard.step3": {
     "en": "Step 3 of 3 — Preview",
@@ -1034,6 +1062,54 @@
   "delete.busy": {
     "en": "Deleting…",
     "hr": "Brisanje…"
+  },
+  "delete.details": {
+    "en": "Details",
+    "hr": "Detalji"
+  },
+  "delete.outcome": {
+    "en": "What was the outcome?",
+    "hr": "Kakav je bio ishod?"
+  },
+  "delete.outcomeSold": {
+    "en": "Sold",
+    "hr": "Prodano"
+  },
+  "delete.outcomeKept": {
+    "en": "Decided to keep the item",
+    "hr": "Odlučio/la sam zadržati predmet"
+  },
+  "delete.outcomeSaleFellThrough": {
+    "en": "Sale fell through",
+    "hr": "Prodaja je propala"
+  },
+  "delete.outcomeGaveAway": {
+    "en": "Gave it away",
+    "hr": "Poklonio/la sam predmet"
+  },
+  "delete.outcomePurchased": {
+    "en": "Purchased",
+    "hr": "Kupljeno"
+  },
+  "delete.outcomePurchaseFellThrough": {
+    "en": "Purchase fell through",
+    "hr": "Kupnja je propala"
+  },
+  "delete.outcomeNoLongerNeeded": {
+    "en": "No longer needed",
+    "hr": "Više nije potrebno"
+  },
+  "delete.outcomeBoughtElsewhere": {
+    "en": "Bought elsewhere",
+    "hr": "Kupljeno drugdje"
+  },
+  "delete.soldPrice": {
+    "en": "Sold for",
+    "hr": "Prodano za"
+  },
+  "delete.purchasePrice": {
+    "en": "Purchased for",
+    "hr": "Kupljeno za"
   },
   "publish.aria": {
     "en": "Listing published",

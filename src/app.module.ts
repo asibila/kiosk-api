@@ -22,6 +22,7 @@ import { ListingTranslationsModule } from './listing-translations/listing-transl
 import { ListingsModule } from './listings/listings.module.js';
 import { ListingChatThreadsModule } from './listing-chat-threads/listing-chat-threads.module.js';
 import { ListingEventsModule } from './listing-events/listing-events.module.js';
+import { ListingOutcomesModule } from './listing-outcomes/listing-outcomes.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RegionsModule } from './regions/regions.module.js';
@@ -45,6 +46,7 @@ import { UsersModule } from './users/users.module.js';
     ListingImagesModule,
     ListingTranslationsModule,
     ListingEventsModule,
+    ListingOutcomesModule,
     CategoriesModule,
     DescriptionsModule,
     ChatMessagesModule,

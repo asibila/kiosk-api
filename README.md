@@ -167,6 +167,7 @@ CRUD controller per entity. Every resource has the same endpoints:
 | `/facet-schemas` | `descriptionId`, `name` (max 225), `categoryId`, `isGeneric` (default false), `type` (`option` or `numeric`), `required` (default false) |
 | `/facet-value-options` | `descriptionId`, `schemaId` |
 | `/facet-value-selections` | `facetValueOptionId`, `listingId` |
+| `/listing-outcomes` | `listingId`, `outcome` (`sold`/`sale_fell_through`/`kept`/`gave_away` for a sale, `purchased`/`purchase_fell_through`/`no_longer_needed`/`bought_elsewhere` for a wanted ad), optional `finalPrice` (>= 0; cleared for outcomes that are not a completed deal) |
 
 Live chat uses `GET /chat-events/stream` (Server-Sent Events). It emits
 `message.created` / `message.updated` events with the saved `ChatMessage` row,

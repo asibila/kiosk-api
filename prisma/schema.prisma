@@ -186,6 +186,39 @@ model ListingEvent {
   @@index([day])
 }
 
+/// Why a seller removed a listing. Deliberately has no foreign keys: the row is
+/// recorded just before the listing is deleted and survives it, so the answers
+/// can be reported later. The allowed values depend on the listing orientation:
+/// `sold`/`sale_fell_through`/`kept`/`gave_away` for "sell", and
+/// `purchased`/`purchase_fell_through`/`no_longer_needed`/`bought_elsewhere`
+/// for "buy".
+enum ListingOutcomeType {
+  sold
+  sale_fell_through
+  kept
+  gave_away
+  purchased
+  purchase_fell_through
+  no_longer_needed
+  bought_elsewhere
+}
+
+model ListingOutcome {
+  id         Int                @id @default(autoincrement())
+  listingId  Int
+  userId     Int
+  categoryId Int
+  outcome    ListingOutcomeType
+  /// Final price for `sold`/`purchased`; null for the other outcomes or when
+  /// left blank.
+  finalPrice Float?
+  createdAt  DateTime           @default(now())
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([outcome])
+}
+
 /// A listing's title in one language. A draft is created with the UI language's
 /// title; other languages are added through the translate dialog. Missing
 /// translations fall back to another language (and finally the generated
