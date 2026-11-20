@@ -64,6 +64,26 @@ describe('SuggestionsService.suggest', () => {
     ).resolves.toEqual({ suggestions: [acmeSuggestion] });
   });
 
+  it('counts listings stored on descendants when a parent category is selected', async () => {
+    const service = createService({
+      categories: [
+        { id: 1, parentCategoryId: null },
+        { id: 2, parentCategoryId: 1 },
+      ],
+      facetSchemas: [
+        { id: 10, descriptionId: 100, name: 'brand', categoryId: 1, isGeneric: false },
+      ],
+      facetOptions: [{ id: 20, descriptionId: 200, schemaId: 10 }],
+      descriptions: brandDescriptions,
+      listings: [{ id: 1, categoryId: 2, orientation: 'sell' }],
+      selections: [{ listingId: 1, facetValueOptionId: 20 }],
+    });
+
+    await expect(
+      service.suggest({ q: '', lang: 'en', categoryId: 1, chips: [] }),
+    ).resolves.toEqual({ suggestions: [acmeSuggestion] });
+  });
+
   it('still finishes when stored categories form a cycle', async () => {
     // Category 1 is its own parent, and categories 2 and 3 point at each other.
     const service = createService({

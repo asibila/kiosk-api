@@ -506,7 +506,7 @@ free text, and counts are computed from `FacetValueSelection` rows.
 | --- | --- | --- | --- |
 | `q` | string | no | Matched against translated value labels, facet labels and facet names |
 | `lang` | string | no | `en` (default) or `hr`; unknown codes fall back to English text |
-| `category` | int | no | Selected category id; includes generic facets and facets inherited from ancestor categories. Omitted = all categories |
+| `category` | int | no | Selected category id; includes generic facets and facets inherited from ancestor categories. Counts also include listings stored on descendant categories, so a parent category aggregates its subtree. Omitted = all categories |
 | `orientation` | `buy` \| `sell` | no | Optional legacy filter; orientation chips are preferred |
 | `chips` | JSON string | no | `[{"kind":"value","facet":"condition","valueId":"1"}]` (orientation chips use `valueId` `buy`/`sell`) |
 

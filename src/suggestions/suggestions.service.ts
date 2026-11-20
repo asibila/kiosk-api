@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { categoryScope } from '../common/category-scope.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export type SuggestionChip =
@@ -67,7 +68,11 @@ export class SuggestionsService {
 
     const categoriesById = new Map(categories.map((category) => [category.id, category]));
     const categoryChain = new Set<number>();
+    // Listings live on the most specific category, so a parent selection also
+    // matches listings stored on its descendants.
+    let categoryIds: Set<number> | null = null;
     if (options.categoryId !== undefined) {
+      categoryIds = categoryScope(options.categoryId, categories);
       let current = categoriesById.get(options.categoryId);
       // Stops at the first repeated category, so a cycle in stored data ends the walk.
       while (current && !categoryChain.has(current.id)) {
@@ -128,7 +133,7 @@ export class SuggestionsService {
     }
 
     const candidateListings = listings.filter((listing) => {
-      if (options.categoryId !== undefined && listing.categoryId !== options.categoryId) {
+      if (categoryIds && !categoryIds.has(listing.categoryId)) {
         return false;
       }
       if (orientation && listing.orientation !== orientation) {
